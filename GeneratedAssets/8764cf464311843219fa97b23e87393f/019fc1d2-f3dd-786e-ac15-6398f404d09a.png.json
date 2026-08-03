@@ -1,0 +1,31 @@
+{
+    "asset": "8764cf464311843219fa97b23e87393f",
+    "fileName": "019fc1d2-f3dd-786e-ac15-6398f404d09a.png",
+    "prompt": "seamless tileable sci-fi hazard obstacle block texture, orange and black diagonal warning stripes on dark metal, industrial barrier crate, flat game art style",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash-texture",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 1024
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

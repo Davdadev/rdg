@@ -1,0 +1,31 @@
+{
+    "asset": "ef42f0f42eea4440cbfd962d4fafa52b",
+    "fileName": "019fc1d1-87c8-7fab-83c7-b3320467689a.png",
+    "prompt": "seamless tileable top-down 2D game arena floor texture, sci-fi grey-blue metal concrete panel flooring, subtle grid lines, flat game art style",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash-texture",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 1024
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "asset": "6f296332afd8548b0aa8a9e4e771d743",
+    "fileName": "019fc1d6-bda7-7b05-bb96-7bafabba798f.png",
+    "prompt": "seamless tileable wooden crate obstacle texture, bright vibrant Clash of Clans mobile game art style, cartoony wood planks with metal rivets, warm saturated colors, cel-shaded",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash-texture",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 1024
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

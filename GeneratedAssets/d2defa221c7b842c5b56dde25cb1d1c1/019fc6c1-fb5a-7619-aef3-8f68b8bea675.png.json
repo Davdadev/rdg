@@ -1,0 +1,31 @@
+{
+    "asset": "d2defa221c7b842c5b56dde25cb1d1c1",
+    "fileName": "019fc6c1-fb5a-7619-aef3-8f68b8bea675.png",
+    "prompt": "Bright colorful cartoon mobile game main menu background, Clash of Clans art style, stylized sky with fluffy clouds, distant floating fortress and banners, warm golden sunlight, vibrant saturated blues greens and oranges, no text, wide landscape composition, game UI backdrop",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 2048,
+        "height": 1152
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

@@ -1,0 +1,117 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+public static class PlayerDataService
+{
+    public const int DefaultSkinIndex = 0;
+    public const string CoinsKey = "SoftCurrency";
+    public const string GemsKey = "HardCurrency";
+    public const string EquippedSkinKey = "EquippedSkinId";
+    public const string OwnedSkinsKey = "OwnedSkins";
+    public const string PlayerNameKey = "PlayerName";
+
+    public static event Action OnCurrencyChanged;
+    public static event Action OnLoadoutChanged;
+
+    public static int Coins
+    {
+        get => PlayerPrefs.GetInt(CoinsKey, 0);
+        set { PlayerPrefs.SetInt(CoinsKey, value); PlayerPrefs.Save(); OnCurrencyChanged?.Invoke(); }
+    }
+
+    public static int Gems
+    {
+        get => PlayerPrefs.GetInt(GemsKey, 0);
+        set { PlayerPrefs.SetInt(GemsKey, value); PlayerPrefs.Save(); OnCurrencyChanged?.Invoke(); }
+    }
+
+    public static string PlayerName
+    {
+        get => PlayerPrefs.GetString(PlayerNameKey, "Player");
+        set { PlayerPrefs.SetString(PlayerNameKey, value); PlayerPrefs.Save(); }
+    }
+
+    public static int EquippedSkinIndex
+    {
+        get => PlayerPrefs.GetInt(EquippedSkinKey, DefaultSkinIndex);
+        set
+        {
+            int clamped = Mathf.Clamp(value, 0, SkinCatalog.SkinCount - 1);
+            if (!OwnsSkin(clamped)) clamped = DefaultSkinIndex;
+            PlayerPrefs.SetInt(EquippedSkinKey, clamped);
+            PlayerPrefs.Save();
+            OnLoadoutChanged?.Invoke();
+        }
+    }
+
+    public static void EnsureDefaults()
+    {
+        if (!PlayerPrefs.HasKey(OwnedSkinsKey))
+            SetOwnedSkins(new HashSet<int> { DefaultSkinIndex });
+
+        if (!OwnsSkin(EquippedSkinIndex))
+            EquippedSkinIndex = DefaultSkinIndex;
+    }
+
+    public static bool OwnsSkin(int skinIndex)
+    {
+        return GetOwnedSkins().Contains(skinIndex);
+    }
+
+    public static HashSet<int> GetOwnedSkins()
+    {
+        var owned = new HashSet<int>();
+        string raw = PlayerPrefs.GetString(OwnedSkinsKey, DefaultSkinIndex.ToString());
+        foreach (string part in raw.Split(','))
+        {
+            if (int.TryParse(part.Trim(), out int id))
+                owned.Add(id);
+        }
+        if (owned.Count == 0)
+            owned.Add(DefaultSkinIndex);
+        return owned;
+    }
+
+    public static void UnlockSkin(int skinIndex)
+    {
+        var owned = GetOwnedSkins();
+        if (owned.Add(skinIndex))
+            SetOwnedSkins(owned);
+    }
+
+    static void SetOwnedSkins(HashSet<int> owned)
+    {
+        PlayerPrefs.SetString(OwnedSkinsKey, string.Join(",", owned));
+        PlayerPrefs.Save();
+        OnLoadoutChanged?.Invoke();
+    }
+
+    public static byte[] BuildConnectionPayload()
+    {
+        return BitConverter.GetBytes(EquippedSkinIndex);
+    }
+
+    public static int ParseSkinFromPayload(byte[] payload)
+    {
+        if (payload == null || payload.Length < 4)
+            return DefaultSkinIndex;
+
+        int skin = BitConverter.ToInt32(payload, 0);
+        return Mathf.Clamp(skin, 0, SkinCatalog.SkinCount - 1);
+    }
+
+    public static bool TrySpendCoins(int amount)
+    {
+        if (amount <= 0 || Coins < amount) return false;
+        Coins -= amount;
+        return true;
+    }
+
+    public static bool TrySpendGems(int amount)
+    {
+        if (amount <= 0 || Gems < amount) return false;
+        Gems -= amount;
+        return true;
+    }
+}

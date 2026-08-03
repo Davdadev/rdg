@@ -1,0 +1,31 @@
+{
+    "asset": "51be166a2beae43c5b48cf6ad72e9d94",
+    "fileName": "019fc6cd-266b-75ec-92bf-015078ab4b10.png",
+    "prompt": "Cartoon mobile game progress bar frame, rounded pill shape, thick dark brown wooden outline, empty dark inner track, glossy bevel, Clash of Clans casual game UI style, transparent background",
+    "negativePrompt": "",
+    "model": "game-ui-essentials-2",
+    "modelName": "Game UI Essentials 2.0",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 608,
+        "height": 160
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}
