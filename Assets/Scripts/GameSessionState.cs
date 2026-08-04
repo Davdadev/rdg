@@ -7,7 +7,8 @@ public static class GameSessionState
     public static int LastCoinReward;
     public static bool PendingResults;
 
-    public static void SetMatchResult(Team winner, int redScore, int blueScore, int coinReward, Team? localTeam)
+    // winner is null for a draw (clock expired with scores level).
+    public static void SetMatchResult(Team? winner, int redScore, int blueScore, int coinReward, Team? localTeam)
     {
         Winner = winner;
         RedScore = redScore;

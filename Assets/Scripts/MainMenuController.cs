@@ -41,6 +41,12 @@ public class MainMenuController : MonoBehaviour
             var iap = new GameObject("IAPService");
             iap.AddComponent<IAPService>();
         }
+
+        if (FindAnyObjectByType<AdService>() == null)
+        {
+            var ads = new GameObject("AdService");
+            ads.AddComponent<AdService>();
+        }
     }
 
     void RefreshAll()

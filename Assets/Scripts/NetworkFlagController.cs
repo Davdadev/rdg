@@ -37,6 +37,19 @@ public class NetworkFlagController : NetworkBehaviour
         carrier = other.GetComponent<NetworkPlayerController>();
         member.carriedFlag = this;
         state.Value = FlagState.Carried;
+
+        FlagTakenClientRpc(team, transform.position);
+    }
+
+    [ClientRpc]
+    void FlagTakenClientRpc(Team flagTeam, Vector3 pos)
+    {
+        Color c = flagTeam == Team.Red ? new Color(1f, 0.4f, 0.4f) : new Color(0.45f, 0.65f, 1f);
+        string who = flagTeam == Team.Red ? "RED" : "BLUE";
+        FloatingText.Spawn(pos, "FLAG TAKEN!", c, 1.1f);
+        GameFeedUI.Instance.Banner(who + " FLAG TAKEN!", c, 0.9f);
+        GameFeedUI.Instance.Toast(who + " flag picked up", c);
+        CameraFollow.Shake(0.18f, 0.12f);
     }
 
     public void CaptureServer()

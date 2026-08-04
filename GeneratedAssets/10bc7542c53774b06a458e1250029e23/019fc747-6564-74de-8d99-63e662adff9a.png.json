@@ -1,0 +1,31 @@
+{
+    "asset": "10bc7542c53774b06a458e1250029e23",
+    "fileName": "019fc747-6564-74de-8d99-63e662adff9a.png",
+    "prompt": "Top-down view of a single round chunky cartoon bush, bold thick dark outline, bright saturated green leaves, flat cel shaded, mobile game cover asset, centered, isolated on plain transparent background",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 576
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

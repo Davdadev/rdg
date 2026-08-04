@@ -110,6 +110,45 @@ public class ShopController : MonoBehaviour
 
     public void OnClosePressed() => Hide();
 
+    [Header("Rewarded ad")]
+    [SerializeField] GameObject watchAdButton;
+    [SerializeField] int coinsPerAd = 75;
+
+    // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
+    // it is only an extra way to earn.
+    public void OnWatchAdForCoinsPressed()
+    {
+        if (AdService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Ads unavailable";
+            return;
+        }
+
+        if (watchAdButton != null) watchAdButton.SetActive(false);
+
+        AdService.Instance.ShowRewarded(watched =>
+        {
+            if (watched)
+            {
+                PlayerDataService.Coins += coinsPerAd;
+                if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
+                GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
+            }
+            else if (statusText != null)
+            {
+                statusText.text = "Ad unavailable";
+            }
+
+            RefreshAdButton();
+        });
+    }
+
+    public void RefreshAdButton()
+    {
+        if (watchAdButton != null)
+            watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
     public void OnSelectKnight() => SelectSkin(0);
     public void OnSelectNinja() => SelectSkin(1);
     public void OnSelectRanger() => SelectSkin(2);

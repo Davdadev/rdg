@@ -9,6 +9,12 @@ public class ResultsController : MonoBehaviour
     [SerializeField] Text scoreText;
     [SerializeField] Text rewardText;
 
+    [Header("Rewarded ad")]
+    [SerializeField] GameObject doubleRewardButton;
+    [SerializeField] Text doubleRewardLabel;
+
+    bool rewardDoubled;
+
     void Start()
     {
         if (panel != null) panel.SetActive(false);
@@ -19,27 +25,70 @@ public class ResultsController : MonoBehaviour
 
     public void ShowFromSession()
     {
-        if (!GameSessionState.Winner.HasValue) return;
+        if (!GameSessionState.PendingResults) return;
 
-        Team winner = GameSessionState.Winner.Value;
-        bool localWon = GameSessionState.LocalTeam.HasValue && GameSessionState.LocalTeam.Value == winner;
+        bool isDraw = !GameSessionState.Winner.HasValue;
+        bool localWon = !isDraw
+            && GameSessionState.LocalTeam.HasValue
+            && GameSessionState.LocalTeam.Value == GameSessionState.Winner.Value;
 
         if (headlineText != null)
-            headlineText.text = localWon ? "Victory!" : "Defeat";
+            headlineText.text = isDraw ? "Draw" : (localWon ? "Victory!" : "Defeat");
 
         if (scoreText != null)
             scoreText.text = $"Red {GameSessionState.RedScore}  —  Blue {GameSessionState.BlueScore}";
 
-        if (rewardText != null)
-            rewardText.text = $"+{GameSessionState.LastCoinReward} coins";
+        rewardDoubled = false;
+        RefreshReward();
+
+        // Only offer the doubler when an ad is actually available, so the player is
+        // never shown a button that does nothing.
+        bool canOffer = AdService.Instance != null && AdService.Instance.RewardedReady
+                        && GameSessionState.LastCoinReward > 0;
+        if (doubleRewardButton != null) doubleRewardButton.SetActive(canOffer);
+        if (doubleRewardLabel != null) doubleRewardLabel.text = "WATCH AD\nDOUBLE COINS";
 
         if (panel != null) panel.SetActive(true);
+    }
+
+    void RefreshReward()
+    {
+        if (rewardText != null)
+            rewardText.text = $"+{GameSessionState.LastCoinReward} coins";
+    }
+
+    public void OnDoubleRewardPressed()
+    {
+        if (rewardDoubled || AdService.Instance == null) return;
+
+        if (doubleRewardButton != null) doubleRewardButton.SetActive(false);
+
+        AdService.Instance.ShowRewarded(watched =>
+        {
+            if (!watched)
+            {
+                // Player bailed or no fill - say so plainly and move on, no penalty.
+                GameFeedUI.Instance.Toast("Ad unavailable - reward unchanged", new Color(1f, 0.7f, 0.4f));
+                return;
+            }
+
+            int bonus = GameSessionState.LastCoinReward;
+            PlayerDataService.Coins += bonus;
+            GameSessionState.LastCoinReward += bonus;
+            rewardDoubled = true;
+
+            RefreshReward();
+            GameFeedUI.Instance.Banner("COINS DOUBLED!", new Color(1f, 0.88f, 0.3f), 1.2f);
+            GameFeedUI.Instance.Toast($"+{bonus} bonus coins", new Color(1f, 0.85f, 0.3f));
+        });
     }
 
     public void OnHomePressed()
     {
         ShutdownNetworkIfNeeded();
         GameSessionState.Clear();
+        // Interstitial on the way out of a match, rate-limited inside AdService.
+        AdService.Instance?.TryShowInterstitial();
         SceneLoader.LoadScene("MainMenu");
     }
 
@@ -47,6 +96,7 @@ public class ResultsController : MonoBehaviour
     {
         ShutdownNetworkIfNeeded();
         GameSessionState.Clear();
+        AdService.Instance?.TryShowInterstitial();
         SceneLoader.LoadScene("Lobby");
     }
 

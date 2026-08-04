@@ -1,0 +1,31 @@
+{
+    "asset": "a15d7a7f5f00849c5923a53ad2fc4eec",
+    "fileName": "019fc707-4590-721e-a825-6185015f467f.png",
+    "prompt": "Seamless tileable top-down grass arena floor texture, bright saturated cartoon style, Clash of Clans art style, vibrant green grass with subtle lighter patches, small painted stone path accents, flat colors with soft shading, no characters, no text, game arena ground texture",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 1024
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}

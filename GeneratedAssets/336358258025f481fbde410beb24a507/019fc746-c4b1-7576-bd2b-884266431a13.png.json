@@ -1,0 +1,31 @@
+{
+    "asset": "336358258025f481fbde410beb24a507",
+    "fileName": "019fc746-c4b1-7576-bd2b-884266431a13.png",
+    "prompt": "Top-down view of a single chunky cartoon wooden crate, bold thick dark outline, bright saturated warm orange-brown wood, flat cel shaded, mobile game obstacle asset, centered, isolated on plain transparent background",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 1024,
+        "height": 576
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}
