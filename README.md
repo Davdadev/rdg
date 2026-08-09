@@ -2,7 +2,7 @@
 
 A fast-paced multiplayer Capture The Flag mobile game, built in Unity for iOS.
 
-## 📲 Play the Beta
+## Play the Beta
 
 The game is live on **TestFlight**:
 
@@ -11,16 +11,16 @@ The game is live on **TestFlight**:
 > Open the link on your iPhone, iPad, or Mac after installing [TestFlight](https://apps.apple.com/us/app/testflight/id899247664).
 > Requires iOS 16 / iPadOS 16 / macOS 13 or later.
 
-## ✨ Features
+##  Features
 
-- 🎨 **Full sprites** — complete character art and animations
-- 👥 **Multiplayer** — competitive online play
-- 📺 **Ads integration**
-- 🎮 **Working gameplay** — core CTF loop
-- 🛒 **In-game shop**
-- 🧢 **More skins**
-- 📋 **Main menu**
-- 🖥️ **New UI**
+-  **Full sprites** — complete character art and animations
+-  **Multiplayer** — competitive online play
+-  **Ads integration**
+-  **Working gameplay** — core CTF loop
+- **In-game shop**
+- **More skins**
+-  **Main menu**
+-  **New UI**
 
 ## 🤖 AI Disclosure
 
