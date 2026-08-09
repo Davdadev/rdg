@@ -238,6 +238,9 @@ public class ShopController : MonoBehaviour
     public void OnSelectKnight() => SelectSkin(0);
     public void OnSelectNinja() => SelectSkin(1);
     public void OnSelectRanger() => SelectSkin(2);
-    public void OnSelectMedic() => SelectSkin(3);
-    public void OnSelectCommander() => SelectSkin(4);
+    // Medic and Commander are not in the catalog yet (placeholder art was removed).
+    // Kept as no-ops so any lingering scene button reference doesn't throw; they
+    // clamp harmlessly if called. Restore real SelectSkin(3)/(4) when art ships.
+    public void OnSelectMedic() { }
+    public void OnSelectCommander() { }
 }

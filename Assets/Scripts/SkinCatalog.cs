@@ -2,9 +2,12 @@ using UnityEngine;
 
 public static class SkinCatalog
 {
-    public const int SkinCount = 5;
+    // Only skins with finished art ship. Medic and Commander were placeholder blobs,
+    // so they were pulled from the catalog until real assets exist. Add them back here
+    // (and re-enable their shop buttons) once their sheets are done.
+    public const int SkinCount = 3;
 
-    static readonly string[] Names = { "Knight", "Ninja", "Ranger", "Medic", "Commander" };
+    static readonly string[] Names = { "Knight", "Ninja", "Ranger" };
 
     public struct SkinEntry
     {
