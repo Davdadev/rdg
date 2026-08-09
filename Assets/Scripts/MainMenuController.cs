@@ -10,6 +10,8 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] Image avatarImage;
     [SerializeField] ShopController shopController;
     [SerializeField] SettingsController settingsController;
+    [Tooltip("Optional dedicated profile screen. If left empty, the Player button opens Settings, which already holds the name field.")]
+    [SerializeField] ProfileController profileController;
 
     void Start()
     {
@@ -87,6 +89,27 @@ public class MainMenuController : MonoBehaviour
     public void OnSettingsPressed()
     {
         if (settingsController != null)
+            settingsController.Show();
+    }
+
+    // Wired to the menu's Player button. Opens the profile screen if one is
+    // assigned; otherwise lazily creates a code-built one, then falls back to
+    // Settings only if profile creation somehow fails.
+    public void OnPlayerPressed()
+    {
+        if (profileController == null)
+        {
+            profileController = FindAnyObjectByType<ProfileController>();
+            if (profileController == null)
+            {
+                var go = new GameObject("ProfileController");
+                profileController = go.AddComponent<ProfileController>();
+            }
+        }
+
+        if (profileController != null)
+            profileController.Show();
+        else if (settingsController != null)
             settingsController.Show();
     }
 }

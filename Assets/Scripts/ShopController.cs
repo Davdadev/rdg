@@ -18,19 +18,25 @@ public class ShopController : MonoBehaviour
         PlayerDataService.EnsureDefaults();
         PlayerDataService.OnCurrencyChanged += RefreshSelected;
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
+        IAPService.OnStoreStateChanged += RefreshRemoveAds;
+        IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
+        RefreshRemoveAds();
     }
 
     void OnDisable()
     {
         PlayerDataService.OnCurrencyChanged -= RefreshSelected;
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
+        IAPService.OnStoreStateChanged -= RefreshRemoveAds;
+        IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
     public void Show()
     {
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
+        RefreshRemoveAds();
     }
 
     public void Hide()
@@ -147,6 +153,86 @@ public class ShopController : MonoBehaviour
     {
         if (watchAdButton != null)
             watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
+    [Header("Remove Ads (IAP)")]
+    [SerializeField] GameObject removeAdsButton;
+    [SerializeField] Text removeAdsPriceText;
+    [SerializeField] GameObject restorePurchasesButton;
+
+    bool removeAdsPending;
+
+    public void RefreshRemoveAds()
+    {
+        // Apple rejects apps that sell a non-consumable without a visible restore control,
+        // so this one is never conditionally hidden the way the ad button is.
+        if (restorePurchasesButton != null) restorePurchasesButton.SetActive(true);
+
+        bool owned = IAPService.AdsRemoved;
+
+        // Price comes from the storefront. A hardcoded "$2" is wrong in every non-USD region
+        // and wrong again the moment the price tier changes.
+        string price = IAPService.Instance != null
+            ? IAPService.Instance.GetLocalizedPrice(IAPService.RemoveAds)
+            : null;
+
+        if (removeAdsPending && owned)
+        {
+            removeAdsPending = false;
+            if (statusText != null) statusText.text = "Ads removed";
+        }
+
+        if (removeAdsPriceText != null)
+            removeAdsPriceText.text = owned ? "Owned" : (price ?? "Unavailable");
+
+        // Once owned the entry stays on screen but dead, rather than disappearing - a vanished
+        // item reads as a bug, a greyed-out one reads as a receipt.
+        var button = removeAdsButton != null ? removeAdsButton.GetComponent<Button>() : null;
+        if (button != null) button.interactable = !owned && price != null;
+    }
+
+    public void OnRemoveAdsPressed()
+    {
+        if (IAPService.AdsRemoved) return;
+
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        removeAdsPending = true;
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyRemoveAds();
+    }
+
+    public void OnRestorePurchasesPressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Restoring...";
+        IAPService.Instance.RestorePurchases(success =>
+        {
+            if (statusText != null)
+            {
+                if (IAPService.AdsRemoved) statusText.text = "Purchases restored";
+                else statusText.text = success ? "Nothing to restore" : "Restore failed";
+            }
+
+            RefreshRemoveAds();
+        });
+    }
+
+    // An empty message means the player cancelled, which is not a failure worth reporting.
+    void ShowPurchaseFailure(string message)
+    {
+        removeAdsPending = false;
+        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        RefreshRemoveAds();
     }
 
     public void OnSelectKnight() => SelectSkin(0);

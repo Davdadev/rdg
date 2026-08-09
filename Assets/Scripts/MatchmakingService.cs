@@ -13,6 +13,10 @@ using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// NOTE: do not add com.unity.services.multiplayer to this project. It re-declares Lobby,
+// Allocation and JoinAllocation in the SAME namespaces as the Lobbies/Relay packages used
+// here, so every reference becomes ambiguous (CS0433) and no using-alias can resolve it.
+// The Multiplayer Center wizard offers to install it - decline.
 public class MatchmakingService : MonoBehaviour
 {
     public static MatchmakingService Instance { get; private set; }
@@ -31,7 +35,8 @@ public class MatchmakingService : MonoBehaviour
     [Header("Lobby")]
     public int maxPlayers = 10;
     public int minPlayersToStart = 2;
-    public float soloStartDelay = 8f;
+    [Tooltip("Seconds to wait for a real opponent before starting the match with bots instead.")]
+    public float soloStartDelay = 15f;
     public string arenaSceneName = "fsfs";
 
     public MatchmakingState State { get; private set; } = MatchmakingState.Idle;
@@ -82,9 +87,12 @@ public class MatchmakingService : MonoBehaviour
         Task initTask = InitializeServicesAsync();
         while (!initTask.IsCompleted) yield return null;
 
+        // Every online failure below falls through to a local match rather than a dead end.
+        // A player who taps PLAY wants to play; "could not join a lobby" is our problem, not
+        // something they can act on.
         if (initTask.IsFaulted)
         {
-            Fail(initTask.Exception?.GetBaseException().Message ?? "Service init failed.");
+            yield return StartOfflineMatch(initTask.Exception?.GetBaseException().Message ?? "service init failed");
             yield break;
         }
 
@@ -96,13 +104,13 @@ public class MatchmakingService : MonoBehaviour
 
         if (matchTask.IsFaulted)
         {
-            Fail(matchTask.Exception?.GetBaseException().Message ?? "Matchmaking failed.");
+            yield return StartOfflineMatch(matchTask.Exception?.GetBaseException().Message ?? "matchmaking failed");
             yield break;
         }
 
         if (!matchTask.Result)
         {
-            Fail("Could not join or create a lobby.");
+            yield return StartOfflineMatch("could not join or create a lobby");
             yield break;
         }
 
@@ -141,8 +149,56 @@ public class MatchmakingService : MonoBehaviour
                 }
             }
 
+            // Covers the case the loop above cannot: transport never comes up, or a join that
+            // hangs without ever faulting. Without this the search spins forever.
+            if (Time.unscaledTime - searchStartedAt >= soloStartDelay + 5f)
+            {
+                yield return StartOfflineMatch("timed out waiting for the network");
+                yield break;
+            }
+
             yield return null;
         }
+    }
+
+    // Local host, no Relay and no Lobby. Bots fill the arena on arrival because
+    // NetworkGameManager.botFillDelay is 0, so the player drops straight into a live match.
+    IEnumerator StartOfflineMatch(string reason)
+    {
+        Debug.LogWarning($"Matchmaking: falling back to a bot match ({reason}).");
+        SetState(MatchmakingState.Searching, "No players found - starting with bots...");
+
+        var nm = NetworkManager.Singleton;
+        if (nm == null)
+        {
+            Fail("NetworkManager missing.");
+            yield break;
+        }
+
+        if (nm.IsListening)
+        {
+            nm.Shutdown();
+            while (nm.ShutdownInProgress) yield return null;
+            yield return null;
+        }
+
+        var transport = nm.GetComponent<UnityTransport>();
+        if (transport != null) transport.SetConnectionData("127.0.0.1", 7777);
+
+        nm.NetworkConfig.ConnectionData = PlayerDataService.BuildConnectionPayload();
+        if (!nm.StartHost())
+        {
+            Fail("Could not start an offline match.");
+            yield break;
+        }
+
+        isHost = true;
+        SetState(MatchmakingState.MatchFound, "Match ready!");
+        yield return new WaitForSecondsRealtime(0.8f);
+
+        SetState(MatchmakingState.LoadingArena, "Loading arena...");
+        LoadArenaForAll();
+        searchRoutine = null;
     }
 
     void LoadArenaForAll()
@@ -250,6 +306,15 @@ public class MatchmakingService : MonoBehaviour
                     { "RelayJoinCode", new DataObject(DataObject.VisibilityOptions.Member, relayJoinCode) }
                 }
             });
+
+        // A previous attempt can leave the NetworkManager listening - StartHost then refuses
+        // with "Can't start while listening" and the failure surfaces as a lobby error, which
+        // sends you hunting the wrong problem entirely.
+        if (NetworkManager.Singleton.IsListening)
+        {
+            Debug.LogWarning("Matchmaking: NetworkManager was still listening; shutting down before hosting.");
+            NetworkManager.Singleton.Shutdown();
+        }
 
         NetworkManager.Singleton.NetworkConfig.ConnectionData = PlayerDataService.BuildConnectionPayload();
         if (!NetworkManager.Singleton.StartHost())

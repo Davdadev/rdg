@@ -8,16 +8,21 @@ using UnityEngine;
 public static class GameUI
 {
     // ---- ground / structure ----
-    public static readonly Color Ground   = Hex("132A1B");
-    public static readonly Color Panel    = Hex("1E4028");
-    public static readonly Color PanelHi  = Hex("2A5636");
-    public static readonly Color Outline  = Hex("0B1A10");
+    // Supercell-style chrome: deep saturated blue panels on a lighter blue field, with a
+    // near-black navy outline on everything. The previous green was lifted from the arena
+    // grass, which made the UI read as more arena rather than as a layer above it.
+    public static readonly Color Ground   = Hex("15274F");
+    public static readonly Color Panel    = Hex("1E3F7D");
+    public static readonly Color PanelHi  = Hex("2E5AA8");
+    public static readonly Color Outline  = Hex("0E1730");
 
     // ---- action ----
-    public static readonly Color Crate    = Hex("E07A28");   // primary CTA
-    public static readonly Color CrateDk  = Hex("A9541A");
-    public static readonly Color Go       = Hex("57C15B");   // confirm
-    public static readonly Color GoDk     = Hex("2F8033");
+    // Exactly one gold CTA per screen. Everything secondary stays blue - the moment a
+    // second gold button appears, neither reads as the primary action any more.
+    public static readonly Color Crate    = Hex("FFC93C");   // primary CTA
+    public static readonly Color CrateDk  = Hex("C08A16");
+    public static readonly Color Go       = Hex("4CD964");   // confirm
+    public static readonly Color GoDk     = Hex("2E9E45");
     public static readonly Color Coin     = Hex("FFC63D");
     public static readonly Color CoinDk   = Hex("C08A16");
 
@@ -28,8 +33,10 @@ public static class GameUI
     public static readonly Color BlueDk   = Hex("2560B0");
 
     // ---- text ----
-    public static readonly Color Cream    = Hex("FFF6E3");
-    public static readonly Color CreamDim = Hex("C7BEA8");
+    // Pure white over the navy outline, rather than cream: the warm cast that read well on
+    // green turns muddy on blue.
+    public static readonly Color Cream    = Hex("FFFFFF");
+    public static readonly Color CreamDim = Hex("B9C7E0");
 
     // ---- type scale (canvas is 1920x1080) ----
     public const int TitleSize   = 96;

@@ -42,6 +42,6 @@ public class PauseMenuController : MonoBehaviour
 
         GameSessionState.Clear();
         Time.timeScale = 1f;
-        SceneLoader.LoadScene("MainMenu");
+        SceneLoader.LoadScene(SceneLoader.MainMenu);
     }
 }

@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -12,6 +13,11 @@ public class TeamMember : NetworkBehaviour
 
     public NetworkVariable<int> skinIndex = new NetworkVariable<int>(
         0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    // Display name, set by the server on spawn from the connection payload (or a bot name).
+    public NetworkVariable<FixedString32Bytes> displayName = new NetworkVariable<FixedString32Bytes>(
+        new FixedString32Bytes("Player"),
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     // True while standing in a bush. Server-owned; clients read it to decide who to draw.
     public NetworkVariable<bool> hiddenInBush = new NetworkVariable<bool>(
@@ -54,7 +60,87 @@ public class TeamMember : NetworkBehaviour
         animator = GetComponent<Animator>();
         team.OnValueChanged += (oldVal, newVal) => ApplySkin();
         skinIndex.OnValueChanged += (oldVal, newVal) => ApplySkin();
+        displayName.OnValueChanged += (oldVal, newVal) => RefreshNameTag();
+        hiddenInBush.OnValueChanged += (oldVal, newVal) => RefreshNameTagVisibility();
         ApplySkin();
+        BuildNameTag();
+    }
+
+    // ---------------- name tag ----------------
+    TextMesh nameMesh;
+    TextMesh nameShadow;
+    static Font nameFont;
+    const float NameHeight = 1.15f;   // world units above the pivot
+
+    void BuildNameTag()
+    {
+        if (nameFont == null) nameFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        var root = new GameObject("NameTag");
+        root.transform.SetParent(transform, false);
+        root.transform.localPosition = new Vector3(0f, NameHeight, 0f);
+
+        // Dark drop copy behind, so the label reads against the busy grass (mirrors FloatingText).
+        var shadowGo = new GameObject("Shadow");
+        shadowGo.transform.SetParent(root.transform, false);
+        shadowGo.transform.localPosition = new Vector3(0.04f, -0.04f, 0.01f);
+        nameShadow = MakeNameMesh(shadowGo, new Color(0f, 0f, 0f, 0.75f), 150);
+
+        var labelGo = new GameObject("Label");
+        labelGo.transform.SetParent(root.transform, false);
+        nameMesh = MakeNameMesh(labelGo, Color.white, 151);
+
+        RefreshNameTag();
+    }
+
+    static TextMesh MakeNameMesh(GameObject go, Color color, int order)
+    {
+        var tm = go.AddComponent<TextMesh>();
+        tm.font = nameFont;
+        tm.fontSize = 72;
+        tm.characterSize = 0.05f;
+        tm.anchor = TextAnchor.LowerCenter;
+        tm.alignment = TextAlignment.Center;
+        tm.color = color;
+        tm.fontStyle = FontStyle.Bold;
+
+        var mr = go.GetComponent<MeshRenderer>();
+        mr.sharedMaterial = nameFont.material;
+        mr.sortingOrder = order;
+        return tm;
+    }
+
+    void RefreshNameTag()
+    {
+        if (nameMesh == null) return;
+        string label = displayName.Value.ToString();
+        nameMesh.text = label;
+        if (nameShadow != null) nameShadow.text = label;
+
+        // Tint the label toward the team colour so you can read allegiance at a glance.
+        Color teamC = GameUI.TeamColor(team.Value);
+        nameMesh.color = Color.Lerp(Color.white, teamC, 0.45f);
+
+        RefreshNameTagVisibility();
+    }
+
+    void RefreshNameTagVisibility()
+    {
+        if (nameMesh == null) return;
+        // Don't reveal a hidden player via their name tag.
+        bool visible = !hiddenInBush.Value;
+        nameMesh.gameObject.SetActive(visible);
+        if (nameShadow != null) nameShadow.gameObject.SetActive(visible);
+    }
+
+    void LateUpdate()
+    {
+        // Keep the label upright and unflipped even when the body sprite flips.
+        if (nameMesh != null)
+        {
+            var t = nameMesh.transform.parent; // NameTag root
+            if (t != null) t.rotation = Quaternion.identity;
+        }
     }
 
     public void ApplySkin()

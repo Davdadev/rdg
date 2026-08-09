@@ -76,11 +76,11 @@ public class LobbyController : MonoBehaviour
         if (MatchmakingService.Instance != null)
             MatchmakingService.Instance.CancelMatchmaking();
 
-        SceneLoader.LoadScene("MainMenu");
+        SceneLoader.LoadScene(SceneLoader.MainMenu);
     }
 
     public void OnBackToMenuPressed()
     {
-        SceneLoader.LoadScene("MainMenu");
+        SceneLoader.LoadScene(SceneLoader.MainMenu);
     }
 }

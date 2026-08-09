@@ -87,9 +87,17 @@ public static class PlayerDataService
         OnLoadoutChanged?.Invoke();
     }
 
+    // Payload layout: [0..3] int skin index, [4..] UTF8 player name.
+    // Skin stays in the first 4 bytes so ParseSkinFromPayload is unchanged.
     public static byte[] BuildConnectionPayload()
     {
-        return BitConverter.GetBytes(EquippedSkinIndex);
+        byte[] skinBytes = BitConverter.GetBytes(EquippedSkinIndex);
+        byte[] nameBytes = System.Text.Encoding.UTF8.GetBytes(SanitizeName(PlayerName));
+
+        var payload = new byte[skinBytes.Length + nameBytes.Length];
+        Buffer.BlockCopy(skinBytes, 0, payload, 0, skinBytes.Length);
+        Buffer.BlockCopy(nameBytes, 0, payload, skinBytes.Length, nameBytes.Length);
+        return payload;
     }
 
     public static int ParseSkinFromPayload(byte[] payload)
@@ -99,6 +107,26 @@ public static class PlayerDataService
 
         int skin = BitConverter.ToInt32(payload, 0);
         return Mathf.Clamp(skin, 0, SkinCatalog.SkinCount - 1);
+    }
+
+    public static string ParseNameFromPayload(byte[] payload)
+    {
+        if (payload == null || payload.Length <= 4)
+            return "Player";
+
+        string name = System.Text.Encoding.UTF8.GetString(payload, 4, payload.Length - 4);
+        return SanitizeName(name);
+    }
+
+    // Trim, cap length, filter profanity, and never return empty (the name tag
+    // would vanish). Every name path routes through here, so the filter is
+    // enforced in one place: settings input, menu display, payload, and name tags.
+    public static string SanitizeName(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "Player";
+        string trimmed = raw.Trim();
+        if (trimmed.Length > 16) trimmed = trimmed.Substring(0, 16);
+        return ProfanityFilter.Filter(trimmed);
     }
 
     public static bool TrySpendCoins(int amount)

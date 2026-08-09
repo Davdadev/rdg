@@ -89,7 +89,7 @@ public class ResultsController : MonoBehaviour
         GameSessionState.Clear();
         // Interstitial on the way out of a match, rate-limited inside AdService.
         AdService.Instance?.TryShowInterstitial();
-        SceneLoader.LoadScene("MainMenu");
+        SceneLoader.LoadScene(SceneLoader.MainMenu);
     }
 
     public void OnRematchPressed()

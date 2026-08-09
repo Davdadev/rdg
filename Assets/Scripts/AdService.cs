@@ -11,6 +11,9 @@ using UnityEngine.Advertisements;
 //   3. Create placements named to match RewardedPlacement / InterstitialPlacement.
 // Until then testMode stays on and Unity serves test ads, which is the correct
 // behaviour for development - shipping with testMode on earns nothing.
+//
+// The "remove_ads" IAP gates interstitials here; see TryShowInterstitial for why it
+// deliberately leaves rewarded ads alone.
 public class AdService : MonoBehaviour, IUnityAdsInitializationListener, IUnityAdsLoadListener, IUnityAdsShowListener
 {
     public static AdService Instance { get; private set; }
@@ -101,6 +104,7 @@ public class AdService : MonoBehaviour, IUnityAdsInitializationListener, IUnityA
     public void LoadInterstitial()
     {
         if (!IsInitialized) return;
+        if (IAPService.AdsRemoved) return;   // don't spend the player's bandwidth on a fill we'll never show
         InterstitialReady = false;
         Advertisement.Load(InterstitialPlacement, this);
     }
@@ -141,6 +145,11 @@ public class AdService : MonoBehaviour, IUnityAdsInitializationListener, IUnityA
     /// <summary>Shows an interstitial if one is ready and the cooldown has elapsed.</summary>
     public bool TryShowInterstitial()
     {
+        // Remove Ads suppresses interstitials only. Rewarded ads stay available on purpose:
+        // they are opt-in and pay out coins, so taking them away would make the paid upgrade
+        // a downgrade. "Remove Ads" means "stop interrupting me", not "stop letting me earn".
+        if (IAPService.AdsRemoved) return false;
+
         if (!IsInitialized || !InterstitialReady) return false;
         if (Time.unscaledTime - lastInterstitialTime < interstitialCooldown) return false;
 

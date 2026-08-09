@@ -16,7 +16,9 @@ public class NetworkGameManager : NetworkBehaviour
 
     [Header("Bot fill")]
     public GameObject playerPrefab;
-    public float botFillDelay = 30f;
+    [Tooltip("Seconds before bots fill the match. 0 = instant, so a solo player never waits on an " +
+             "empty arena. The cost is that a human who matchmakes a moment later joins a full game.")]
+    public float botFillDelay = 0f;
     public int botFillTargetPerTeam = 2;
 
     [Header("Tagging")]
@@ -49,6 +51,7 @@ public class NetworkGameManager : NetworkBehaviour
     int blueCount;
     bool matchEnded;
     readonly Queue<int> pendingSkinQueue = new();
+    readonly Queue<string> pendingNameQueue = new();
 
     void Awake() => Instance = this;
 
@@ -75,7 +78,11 @@ public class NetworkGameManager : NetworkBehaviour
 
     IEnumerator BotFillRoutine()
     {
-        yield return new WaitForSeconds(botFillDelay);
+        // Always give the host's own player a frame to spawn through connection approval,
+        // otherwise at delay 0 the bots claim spawn points before the human has one.
+        yield return null;
+        if (botFillDelay > 0f)
+            yield return new WaitForSeconds(botFillDelay);
 
         if (NetworkManager.Singleton.ConnectedClientsIds.Count >= 2)
             yield break; // a real second player already joined
@@ -119,8 +126,17 @@ public class NetworkGameManager : NetworkBehaviour
         var brain = instance.GetComponent<BotAIController>();
         if (brain != null) brain.SetRole(role);
 
-        AssignTeamAndSpawn(instance, team, PlayerDataService.DefaultSkinIndex);
+        AssignTeamAndSpawn(instance, team, PlayerDataService.DefaultSkinIndex, NextBotName());
     }
+
+    // Themed filler names so bot opponents read as characters, not "Player (1)".
+    static readonly string[] BotNames =
+    {
+        "Ravi", "Mika", "Zane", "Nova", "Kato", "Bex", "Juno", "Rex",
+        "Pip", "Vera", "Odin", "Lux", "Finn", "Sable", "Gizmo", "Wren",
+    };
+    int botNameCursor;
+    string NextBotName() => BotNames[botNameCursor++ % BotNames.Length];
 
     void ApproveConnection(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
     {
@@ -133,6 +149,7 @@ public class NetworkGameManager : NetworkBehaviour
             requestedSkin = PlayerDataService.DefaultSkinIndex;
 
         pendingSkinQueue.Enqueue(requestedSkin);
+        pendingNameQueue.Enqueue(PlayerDataService.ParseNameFromPayload(request.Payload));
     }
 
     void OnClientConnected(ulong clientId)
@@ -144,13 +161,16 @@ public class NetworkGameManager : NetworkBehaviour
         int requestedSkin = pendingSkinQueue.Count > 0
             ? pendingSkinQueue.Dequeue()
             : PlayerDataService.DefaultSkinIndex;
+        string requestedName = pendingNameQueue.Count > 0
+            ? pendingNameQueue.Dequeue()
+            : "Player";
 
-        AssignTeamAndSpawn(client.PlayerObject.gameObject, assigned, requestedSkin);
+        AssignTeamAndSpawn(client.PlayerObject.gameObject, assigned, requestedSkin, requestedName);
     }
 
     // Shared by real client connections and server-spawned bots: picks a spawn point for the
-    // given team, sets the TeamMember's networked team/skin, and positions the player object.
-    void AssignTeamAndSpawn(GameObject playerObject, Team assigned, int skinIndex)
+    // given team, sets the TeamMember's networked team/skin/name, and positions the player object.
+    void AssignTeamAndSpawn(GameObject playerObject, Team assigned, int skinIndex, string displayName)
     {
         Transform[] points = assigned == Team.Red ? redSpawnPoints : blueSpawnPoints;
         int index = assigned == Team.Red ? redCount : blueCount;
@@ -162,6 +182,8 @@ public class NetworkGameManager : NetworkBehaviour
         {
             member.team.Value = assigned;
             member.skinIndex.Value = skinIndex;
+            member.displayName.Value = new Unity.Collections.FixedString32Bytes(
+                PlayerDataService.SanitizeName(displayName));
         }
 
         if (points != null && points.Length > index && points[index] != null)

@@ -1,0 +1,31 @@
+{
+    "asset": "33f56ec8ba2764c24aa52d6e5cc461bf",
+    "fileName": "019fcc61-b249-7e34-9426-447b9dc091b3.png",
+    "prompt": "Wide cartoon game menu background, landscape orientation, painterly mobile game art.\nA grassy tournament arena at dusk seen from a low angle: a broad open field of short grass in the\nforeground, two rows of simple red and blue pennant banners on tall poles receding into the distance\non the far left and far right edges, low rolling green hills behind, deep teal-blue evening sky with\nsoft clouds and a warm glow near the horizon.\nThe centre of the image is deliberately EMPTY, DARKER and heavily out of focus, with no objects,\nno banners and no detail - all visual interest sits in the outer thirds.\nRich saturated colours, strong atmospheric depth haze, soft painterly edges.\nNo castle, no buildings, no characters, no text, no logos, no UI.",
+    "negativePrompt": "",
+    "model": "gemini-3.1-flash",
+    "modelName": "Gemini 3.1 Nano Banana 2",
+    "customSeed": -1,
+    "w3CTraceId": "",
+    "feedback": 0,
+    "refinementMode": "Generation",
+    "pixelateTargetSize": 0,
+    "pixelateKeepImageSize": false,
+    "pixelatePixelBlockSize": 0,
+    "pixelatePixelGridSize": 0,
+    "pixelateMode": 0,
+    "pixelateOutlineThickness": 0,
+    "doodles": {
+        "m_Items": []
+    },
+    "upscaleFactor": 0,
+    "dimensions": {
+        "width": 2048,
+        "height": 1152
+    },
+    "spriteSheet": false,
+    "duration": 0.0,
+    "dynamicParams": {
+        "serializedData": []
+    }
+}
