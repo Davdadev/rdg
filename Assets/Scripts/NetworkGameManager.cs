@@ -53,6 +53,12 @@ public class NetworkGameManager : NetworkBehaviour
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
+    // EndGameClientRpc pays the local player directly (no server-authoritative economy here
+    // by design). matchEnded only guards the server's own Update/FixedUpdate loops, so without
+    // this a client that receives the RPC twice - a resend, a late duplicate, whatever - would
+    // get paid twice for one match.
+    bool localRewardGranted;
+
     void Awake() => Instance = this;
 
     public override void OnNetworkSpawn()
@@ -318,7 +324,12 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+
+        if (!localRewardGranted)
+        {
+            localRewardGranted = true;
+            PlayerDataService.AddCoins(coinReward);
+        }
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 
