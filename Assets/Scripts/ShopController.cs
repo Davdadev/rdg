@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -153,6 +155,23 @@ public class ShopController : MonoBehaviour
     {
         if (watchAdButton != null)
             watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
+    // The ad readies asynchronously and there is no event for it, so poll while the shop is
+    // open - same approach as MenuFreeCoins. Without this, one tap while the ad wasn't ready
+    // hides the button for good, even across Hide()/Show().
+    float adPollTimer;
+    const float AdPollInterval = 1f;
+
+    void Update()
+    {
+        if (panel != null && !panel.activeInHierarchy) return;
+
+        adPollTimer -= Time.unscaledDeltaTime;
+        if (adPollTimer > 0f) return;
+        adPollTimer = AdPollInterval;
+
+        RefreshAdButton();
     }
 
     [Header("Remove Ads (IAP)")]
