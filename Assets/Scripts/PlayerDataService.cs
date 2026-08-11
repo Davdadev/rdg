@@ -129,6 +129,17 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // The only guarded earn path - TrySpendCoins is the only guarded spend path, but every
+    // earn site used to write Coins directly with no clamp. Route match rewards, ad rewards,
+    // and doubler bonuses through here so a bad value can't push the balance negative or
+    // overflow the underlying 32-bit PlayerPrefs int.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long total = (long)Coins + amount;
+        Coins = total > int.MaxValue ? int.MaxValue : (int)total;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
