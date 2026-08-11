@@ -227,12 +227,35 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label (e.g. "Contacting store...") still has to clear, so write it
+    // unconditionally rather than only on a non-empty message.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
+    }
+
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    // Consumables have no entitlement to track, so unlike RemoveAds there is no pending
+    // latch here - GrantGems raises PlayerDataService.OnCurrencyChanged, which RefreshSelected
+    // is already subscribed to, so the status text gets overwritten with the post-purchase
+    // state on its own. A cancel/failure still routes through ShowPurchaseFailure above.
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
     }
 
     public void OnSelectKnight() => SelectSkin(0);
