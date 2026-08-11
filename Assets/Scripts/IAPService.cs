@@ -132,7 +132,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
+                // The store charged for something our catalog doesn't recognise - this should
+                // never happen once the App Store Connect products match the ids above, but if
+                // it does, the player must not be left thinking the app silently ate their
+                // money with nothing to show for it. Still Complete: returning Pending would
+                // just replay this same unresolvable purchase on every future launch forever.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id} - no entitlement granted");
+                OnPurchaseFailedMessage?.Invoke("Purchase could not be completed - please contact support");
                 break;
         }
 
