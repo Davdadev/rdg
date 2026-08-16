@@ -44,8 +44,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, not instance fields: the store connection outlives any single GameObject.
+    // UnityPurchasing.Initialize is guarded to run once per process (see initializeRequested
+    // above), so if the DontDestroyOnLoad object ever gets destroyed and MainMenuController
+    // lazily creates a new one, that new instance must still be able to reach the already-
+    // initialized controller instead of finding it null forever.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +74,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        // Only clear the singleton if this was it - the early-out Destroy(gameObject) above
+        // for a duplicate instance must not null out the real one's Instance reference.
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
@@ -133,7 +145,10 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 break;
             default:
                 Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                // Complete would finish the transaction and consume the receipt with nothing
+                // granted - real money, no goods, no recovery. Pending leaves the purchase
+                // outstanding so the store retries delivery instead of silently eating it.
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
