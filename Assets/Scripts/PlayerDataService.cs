@@ -129,6 +129,16 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Guarded counterpart to TrySpendCoins - every earn path (ad rewards, match
+    // payouts, the doubler) should route through here rather than writing the
+    // Coins setter directly, so a stray negative/zero amount can't silently
+    // corrupt the balance.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        Coins += amount;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
