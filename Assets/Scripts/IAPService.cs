@@ -44,8 +44,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, not per-instance: UnityPurchasing.Initialize only ever runs once per
+    // process (see InitializePurchasing's early-out), so if the DontDestroyOnLoad
+    // GameObject is ever destroyed and MainMenuController lazily recreates it, the
+    // new instance still has a working controller to purchase through instead of
+    // being stuck behind a latch that will never fire again.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +74,11 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
@@ -132,8 +142,12 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
+                // Complete would finish the transaction and consume the receipt with
+                // nothing granted - real money, no goods, no way back. Pending leaves
+                // the transaction outstanding so it gets redelivered through
+                // ProcessPurchase again (e.g. next launch) instead of being lost.
                 Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
