@@ -116,6 +116,40 @@ public class ShopController : MonoBehaviour
 
     public void OnClosePressed() => Hide();
 
+    [Header("Gem packs (IAP)")]
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // Nothing in the scene calls these yet - a human needs to wire two buttons to them
+    // in the Unity editor. Without this, gems can be earned by the shop's gem-priced
+    // skin but never bought, which is exactly the dead-end this method exists to close.
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
+    }
+
+    void RefreshGemPackPrices()
+    {
+        if (IAPService.Instance == null) return;
+
+        if (gemPackSmallPriceText != null)
+            gemPackSmallPriceText.text = IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall) ?? "Unavailable";
+        if (gemPackLargePriceText != null)
+            gemPackLargePriceText.text = IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge) ?? "Unavailable";
+    }
+
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
@@ -189,6 +223,8 @@ public class ShopController : MonoBehaviour
         // item reads as a bug, a greyed-out one reads as a receipt.
         var button = removeAdsButton != null ? removeAdsButton.GetComponent<Button>() : null;
         if (button != null) button.interactable = !owned && price != null;
+
+        RefreshGemPackPrices();
     }
 
     public void OnRemoveAdsPressed()

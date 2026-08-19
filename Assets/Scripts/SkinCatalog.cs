@@ -21,12 +21,16 @@ public static class SkinCatalog
     public static SkinEntry Get(int id)
     {
         id = Mathf.Clamp(id, 0, SkinCount - 1);
+        // Ranger is the gem sink: id was previously the only branch (>= 3) that could
+        // ever price a skin in gems, but Get() clamps to SkinCount - 1 == 2, so that
+        // branch was unreachable and every skin was effectively free in gems. Ranger
+        // is priced in gems only (no CoinPrice) so a skin never has two valid tenders.
         return new SkinEntry
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 20 : 0,
             Free = id == 0
         };
     }
