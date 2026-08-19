@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -119,6 +121,9 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    float adButtonPollTimer;
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -136,7 +141,7 @@ public class ShopController : MonoBehaviour
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -153,6 +158,18 @@ public class ShopController : MonoBehaviour
     {
         if (watchAdButton != null)
             watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
+    // The button hides itself before the ad plays and only this poll brings it back -
+    // there is no other event that fires when a fresh rewarded ad finishes loading.
+    // Same approach as MenuFreeCoins, so a single "not ready yet" tap doesn't hide the
+    // button for the rest of the scene's lifetime.
+    void Update()
+    {
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+        RefreshAdButton();
     }
 
     [Header("Remove Ads (IAP)")]
@@ -227,20 +244,42 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label still needs to clear, otherwise "Contacting store..." (set before
+    // the purchase started) is stuck on screen for the rest of the session.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
+    }
+
+    // Wrapper API so a scene button can buy gems without touching IAPService directly.
+    // These previously had zero callers anywhere in the project - gem packs were
+    // unpurchasable and every skin cost 0 gems, so the whole gem economy was dead.
+    // A human still needs to wire buttons in the shop scene to these.
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.Instance?.BuyGemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.Instance?.BuyGemPackLarge);
+
+    void BuyGemPack(System.Action buy)
+    {
+        if (buy == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        buy();
     }
 
     public void OnSelectKnight() => SelectSkin(0);
     public void OnSelectNinja() => SelectSkin(1);
     public void OnSelectRanger() => SelectSkin(2);
     // Medic and Commander are not in the catalog yet (placeholder art was removed).
-    // Kept as no-ops so any lingering scene button reference doesn't throw; they
-    // clamp harmlessly if called. Restore real SelectSkin(3)/(4) when art ships.
+    // Kept as no-ops - not SelectSkin(3)/(4) - so a lingering scene button reference
+    // does nothing rather than throwing or clamping onto Ranger. Restore real
+    // selection here (and in SkinCatalog) once their sheets ship.
     public void OnSelectMedic() { }
     public void OnSelectCommander() { }
 }
