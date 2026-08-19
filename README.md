@@ -1,6 +1,6 @@
-# 🚩 Capture The Flag
+#  Capture The Flag
 
-A fast-paced multiplayer Capture The Flag mobile game, built in Unity for iOS.
+A  multiplayer Capture The Flag mobile game, built in Unity for iOS.
 
 ## Play the Beta
 
@@ -16,13 +16,13 @@ The game is live on **TestFlight**:
 -  **Full sprites** — complete character art and animations
 -  **Multiplayer** — competitive online play
 -  **Ads integration**
--  **Working gameplay** — core CTF loop
+-  **Working gameplay** — core CTF 
 - **In-game shop**
 - **More skins**
 -  **Main menu**
 -  **New UI**
 
-## 🤖 AI Disclosure
+##  AI Disclosure
 
 This game was coded using **Claude Code** and **Hermes**, with iteration and
 improvements done by me to ensure the game met a proper quality standard.
