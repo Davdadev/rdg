@@ -282,11 +282,13 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label still has to be cleared, or a cancel leaves "Contacting store..."
+    // on screen for the rest of the session.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message ?? "";
         RefreshRemoveAds();
     }
 
