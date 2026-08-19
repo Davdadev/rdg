@@ -13,6 +13,12 @@ public class ShopController : MonoBehaviour
 
     int selectedSkin;
 
+    // The watch-ad button only gets pushed back onscreen by RefreshAdButton(), and ad
+    // readiness changes on its own between taps - poll it the same way MenuFreeCoins does,
+    // rather than leaving it hidden until something else happens to call RefreshAdButton().
+    [SerializeField] float adButtonPollInterval = 1f;
+    float adButtonPollTimer;
+
     void OnEnable()
     {
         PlayerDataService.EnsureDefaults();
@@ -22,6 +28,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -32,11 +39,23 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
+    void Update()
+    {
+        if (panel == null || !panel.activeInHierarchy) return;
+
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+
+        RefreshAdButton();
+    }
+
     public void Show()
     {
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
