@@ -71,6 +71,23 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         InitializePurchasing();
     }
 
+    void OnDestroy()
+    {
+        // Only the real singleton's teardown should reset shared state - the Destroy()
+        // above for a duplicate must not clear the latch out from under the survivor.
+        if (Instance != this) return;
+
+        Instance = null;
+        controller = null;
+        StoreReady = false;
+
+        // MainMenuController recreates this GameObject lazily if it's ever missing. Without
+        // resetting the latch here, that recreation would find initializeRequested already
+        // true, skip UnityPurchasing.Initialize entirely, and leave controller null (and
+        // every purchase reporting "Store unavailable") for the rest of the process.
+        initializeRequested = false;
+    }
+
     void InitializePurchasing()
     {
         // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
