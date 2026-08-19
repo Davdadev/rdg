@@ -132,8 +132,12 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                // Complete would finish the transaction and consume the receipt with
+                // nothing granted - real money, no goods, no way back. Pending leaves the
+                // receipt unconsumed so IAP keeps re-delivering it (e.g. next launch),
+                // giving a future build a chance to recognise the product and grant it.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id} - leaving pending, not consuming receipt.");
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
