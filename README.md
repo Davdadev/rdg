@@ -29,7 +29,7 @@ improvements done by me to ensure the game met a proper quality standard.
 
 Sprite design and sprite animation were created with **Sudo AI** and **Nano Banana**.
 
-## 🛠️ Tech
+##  Tech
 
 - **Engine:** Unity 6 (6000.5.6f1)
 - **Platform:** iOS (TestFlight beta)
