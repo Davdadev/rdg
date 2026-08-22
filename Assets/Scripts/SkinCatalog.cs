@@ -25,8 +25,10 @@ public static class SkinCatalog
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            // One skin of each kind: free starter, coin-priced, gem-priced. Gems need a real
+            // sink to be worth selling packs for - Ranger is it, until more skins ship.
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 30 : 0,
             Free = id == 0
         };
     }

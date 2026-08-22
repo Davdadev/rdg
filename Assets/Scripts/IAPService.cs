@@ -42,7 +42,15 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     public event Action<int> OnGemsPurchased;
 
-    static bool initializeRequested;
+    // Cached across instances, not just built once and forgotten: ConfigurationBuilder is a
+    // process-wide singleton in IAP 5.x, so a second AddProduct pass on the same key throws
+    // "Same key". Keeping the built instance (rather than a plain "did we run" bool) lets a
+    // replacement IAPService - e.g. if the DontDestroyOnLoad object is ever destroyed and
+    // MainMenuController lazily recreates it - call UnityPurchasing.Initialize again with
+    // itself as the listener without re-adding products. Without this the old bool latch
+    // would permanently block re-initialisation and every purchase would report "Store
+    // unavailable" for the rest of the session.
+    static ConfigurationBuilder builder;
 
     IStoreController controller;
     IAppleExtensions appleExtensions;
@@ -55,7 +63,7 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
     {
         AdsRemoved = PlayerPrefs.GetInt(AdsRemovedKey, 0) == 1;
         StoreReady = false;
-        initializeRequested = false;
+        builder = null;
     }
 
     void Awake()
@@ -71,17 +79,20 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         InitializePurchasing();
     }
 
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     void InitializePurchasing()
     {
-        // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
-        // "Same key". One shot per process.
-        if (initializeRequested) return;
-        initializeRequested = true;
-
-        var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-        builder.AddProduct(GemPackSmall, ProductType.Consumable);
-        builder.AddProduct(GemPackLarge, ProductType.Consumable);
-        builder.AddProduct(RemoveAds, ProductType.NonConsumable);
+        if (builder == null)
+        {
+            builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
+            builder.AddProduct(GemPackSmall, ProductType.Consumable);
+            builder.AddProduct(GemPackLarge, ProductType.Consumable);
+            builder.AddProduct(RemoveAds, ProductType.NonConsumable);
+        }
 
         UnityPurchasing.Initialize(this, builder);
     }
@@ -132,7 +143,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
+                // The store charged for something our catalog doesn't recognise - this should
+                // never happen once the App Store Connect products match the ids above, but if
+                // it does, the player must not be left thinking the app silently ate their
+                // money with nothing to show for it. Still Complete: returning Pending would
+                // just replay this same unresolvable purchase on every future launch forever.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id} - no entitlement granted");
+                OnPurchaseFailedMessage?.Invoke("Purchase could not be completed - please contact support");
                 break;
         }
 

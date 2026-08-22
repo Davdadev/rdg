@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -136,7 +138,7 @@ public class ShopController : MonoBehaviour
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -153,6 +155,23 @@ public class ShopController : MonoBehaviour
     {
         if (watchAdButton != null)
             watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
+    // The ad readies asynchronously and there is no event for it, so poll while the shop is
+    // open - same approach as MenuFreeCoins. Without this, one tap while the ad wasn't ready
+    // hides the button for good, even across Hide()/Show().
+    float adPollTimer;
+    const float AdPollInterval = 1f;
+
+    void Update()
+    {
+        if (panel != null && !panel.activeInHierarchy) return;
+
+        adPollTimer -= Time.unscaledDeltaTime;
+        if (adPollTimer > 0f) return;
+        adPollTimer = AdPollInterval;
+
+        RefreshAdButton();
     }
 
     [Header("Remove Ads (IAP)")]
@@ -227,12 +246,35 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label (e.g. "Contacting store...") still has to clear, so write it
+    // unconditionally rather than only on a non-empty message.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
+    }
+
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    // Consumables have no entitlement to track, so unlike RemoveAds there is no pending
+    // latch here - GrantGems raises PlayerDataService.OnCurrencyChanged, which RefreshSelected
+    // is already subscribed to, so the status text gets overwritten with the post-purchase
+    // state on its own. A cancel/failure still routes through ShowPurchaseFailure above.
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
     }
 
     public void OnSelectKnight() => SelectSkin(0);

@@ -7,6 +7,12 @@ public static class GameSessionState
     public static int LastCoinReward;
     public static bool PendingResults;
 
+    // Lives here rather than as an instance flag on ResultsController: LastCoinReward is
+    // already-doubled static state, so the "have we doubled it" guard has to be static too,
+    // or a second ShowFromSession() before Clear() (e.g. Start() replaying pending results)
+    // re-arms the doubler against an already-doubled value.
+    public static bool RewardDoubled;
+
     // winner is null for a draw (clock expired with scores level).
     public static void SetMatchResult(Team? winner, int redScore, int blueScore, int coinReward, Team? localTeam)
     {
@@ -26,5 +32,6 @@ public static class GameSessionState
         LastCoinReward = 0;
         LocalTeam = null;
         PendingResults = false;
+        RewardDoubled = false;
     }
 }
