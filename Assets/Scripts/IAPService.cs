@@ -44,8 +44,15 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, like Instance/AdsRemoved/StoreReady: the native store session these represent
+    // outlives any one MonoBehaviour. If the DontDestroyOnLoad GameObject is ever destroyed
+    // and MainMenuController lazily creates a replacement, that replacement inherits a working
+    // controller immediately instead of being permanently stuck - initializeRequested stays
+    // latched (re-adding products to the IAP 5.x ConfigurationBuilder singleton throws "Same
+    // key"), so a true re-initialize after a destroy that happens mid-init, before OnInitialized
+    // ever fires, is still not recovered here; that would need editor testing to fix safely.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +76,11 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
