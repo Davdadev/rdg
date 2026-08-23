@@ -25,8 +25,10 @@ public static class SkinCatalog
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            // Knight is the free starter, Ninja is a coin sink, Ranger is the gem sink -
+            // the old `id >= 3` gem branch was unreachable since SkinCount clamps to 0..2.
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 20 : 0,
             Free = id == 0
         };
     }
