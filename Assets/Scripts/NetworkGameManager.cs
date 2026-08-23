@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool rewardGranted;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -318,7 +319,15 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+
+        // matchEnded only guards the server; a client can still see this RPC more than once
+        // (e.g. late join / RPC redelivery), and each client pays itself. Gate on an
+        // instance flag so a replay never grants coins twice.
+        if (!rewardGranted)
+        {
+            rewardGranted = true;
+            PlayerDataService.GrantCoins(coinReward);
+        }
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 
