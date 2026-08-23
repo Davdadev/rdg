@@ -144,8 +144,12 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                // Complete here would consume the receipt and finish the transaction - taking
+                // the player's money and delivering nothing, with no way to recover it. Pending
+                // leaves the transaction outstanding so it is retried/investigable instead of lost.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id}");
+                OnPurchaseFailedMessage?.Invoke("Purchase error - please contact support");
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
