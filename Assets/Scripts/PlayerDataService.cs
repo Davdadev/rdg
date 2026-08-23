@@ -129,6 +129,14 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // The only guarded earn path - Coins itself has no clamping and no negative guard, and
+    // every earn call site used to write it directly. Route new earn code through here.
+    public static void GrantCoins(int amount)
+    {
+        if (amount <= 0) return;
+        Coins += amount;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
