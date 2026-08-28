@@ -129,6 +129,15 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Every earn path (ads, match results, doubler) should route through here rather than
+    // writing Coins directly, so a stray negative or zero reward can never silently corrupt
+    // the balance.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        Coins += amount;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;

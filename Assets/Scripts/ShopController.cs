@@ -19,9 +19,12 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnCurrencyChanged += RefreshSelected;
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
         IAPService.OnStoreStateChanged += RefreshRemoveAds;
+        IAPService.OnStoreStateChanged += RefreshGemPacks;
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -29,6 +32,7 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnCurrencyChanged -= RefreshSelected;
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
         IAPService.OnStoreStateChanged -= RefreshRemoveAds;
+        IAPService.OnStoreStateChanged -= RefreshGemPacks;
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
@@ -37,6 +41,8 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -119,6 +125,23 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    float adButtonPollTimer;
+    bool watchAdBusy;
+
+    // Same problem MenuFreeCoins solves: the button hides itself before the ad shows
+    // and nothing else was restoring it, so one tap while an ad wasn't ready killed the
+    // button for the rest of the panel's lifetime. Poll on the same ~1s cadence instead
+    // of relying on a callback that only fires for the tap that just happened.
+    void Update()
+    {
+        if (watchAdBusy) return;
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -130,13 +153,14 @@ public class ShopController : MonoBehaviour
             return;
         }
 
+        watchAdBusy = true;
         if (watchAdButton != null) watchAdButton.SetActive(false);
 
         AdService.Instance.ShowRewarded(watched =>
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -145,6 +169,7 @@ public class ShopController : MonoBehaviour
                 statusText.text = "Ad unavailable";
             }
 
+            watchAdBusy = false;
             RefreshAdButton();
         });
     }
@@ -227,12 +252,51 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled. That still has to clear "Contacting
+    // store..." (an empty string is a valid, deliberate value here), or the status label
+    // is stuck reading a pending purchase that already ended.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
+    }
+
+    [Header("Gem packs (IAP)")]
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // Gems are granted via PlayerDataService.Gems, which fires OnCurrencyChanged and
+    // therefore RefreshSelected - so a successful purchase clears "Contacting store..."
+    // on its own, the same way a cancelled one is cleared by ShowPurchaseFailure above.
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
+    }
+
+    public void RefreshGemPacks()
+    {
+        if (gemPackSmallPriceText != null)
+            gemPackSmallPriceText.text = IAPService.Instance != null
+                ? (IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall) ?? "Unavailable")
+                : "Unavailable";
+
+        if (gemPackLargePriceText != null)
+            gemPackLargePriceText.text = IAPService.Instance != null
+                ? (IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge) ?? "Unavailable")
+                : "Unavailable";
     }
 
     public void OnSelectKnight() => SelectSkin(0);
