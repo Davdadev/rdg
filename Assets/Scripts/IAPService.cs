@@ -44,8 +44,14 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, not instance fields: initializeRequested latches for the whole process (the
+    // ConfigurationBuilder singleton can't take a second AddProduct pass), so if the
+    // DontDestroyOnLoad host is ever destroyed and recreated, the new instance's
+    // InitializePurchasing() is a no-op and never gets its own controller reference via
+    // OnInitialized. Keeping the connection here means a new instance can carry on using the
+    // one already established instead of the store staying "unavailable" for the rest of the session.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +75,11 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
