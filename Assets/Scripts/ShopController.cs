@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -119,6 +121,10 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adPollInterval = 1f;
+
+    float adPollTimer;
+    bool watchingAd;
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -130,10 +136,13 @@ public class ShopController : MonoBehaviour
             return;
         }
 
+        watchingAd = true;
         if (watchAdButton != null) watchAdButton.SetActive(false);
 
         AdService.Instance.ShowRewarded(watched =>
         {
+            watchingAd = false;
+
             if (watched)
             {
                 PlayerDataService.Coins += coinsPerAd;
@@ -151,8 +160,20 @@ public class ShopController : MonoBehaviour
 
     public void RefreshAdButton()
     {
+        if (watchingAd) return;
         if (watchAdButton != null)
             watchAdButton.SetActive(AdService.Instance != null && AdService.Instance.RewardedReady);
+    }
+
+    // Ad fill can arrive at any time (not just right after a tap), and this button has no
+    // other trigger to re-check it - same polling approach as MenuFreeCoins.
+    void Update()
+    {
+        if (watchingAd) return;
+        adPollTimer -= Time.unscaledDeltaTime;
+        if (adPollTimer > 0f) return;
+        adPollTimer = adPollInterval;
+        RefreshAdButton();
     }
 
     [Header("Remove Ads (IAP)")]
