@@ -129,6 +129,15 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Guarded credit path for the "you earned coins" flows (ad rewards, match results, ad
+    // doubler). Coins has no clamping of its own, so a stray negative amount here would
+    // silently subtract instead of grant - reject it rather than trust every call site.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        Coins += amount;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;

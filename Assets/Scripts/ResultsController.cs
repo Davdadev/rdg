@@ -72,7 +72,7 @@ public class ResultsController : MonoBehaviour
             }
 
             int bonus = GameSessionState.LastCoinReward;
-            PlayerDataService.Coins += bonus;
+            PlayerDataService.AddCoins(bonus);
             GameSessionState.LastCoinReward += bonus;
             GameSessionState.RewardDoubled = true;
 
