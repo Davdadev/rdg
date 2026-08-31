@@ -18,15 +18,19 @@ public static class SkinCatalog
         public bool Free;
     }
 
+    // Top-tier skin (Ranger) is the gem sink - it's gem-only, not an alternative to coins,
+    // so CoinPrice is 0 there. This was previously `id >= 3`, which SkinCount = 3 can never
+    // reach, so gems had no sink at all. Everything below the top tier is coin-only.
     public static SkinEntry Get(int id)
     {
         id = Mathf.Clamp(id, 0, SkinCount - 1);
+        bool isGemTier = id == SkinCount - 1 && id > 0;
         return new SkinEntry
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            CoinPrice = id == 0 || isGemTier ? 0 : 150 * id,
+            GemPrice = isGemTier ? 30 : 0,
             Free = id == 0
         };
     }

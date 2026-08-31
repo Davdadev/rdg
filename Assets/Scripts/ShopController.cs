@@ -18,17 +18,17 @@ public class ShopController : MonoBehaviour
         PlayerDataService.EnsureDefaults();
         PlayerDataService.OnCurrencyChanged += RefreshSelected;
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
-        IAPService.OnStoreStateChanged += RefreshRemoveAds;
+        IAPService.OnStoreStateChanged += RefreshStoreUI;
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
-        RefreshRemoveAds();
+        RefreshStoreUI();
     }
 
     void OnDisable()
     {
         PlayerDataService.OnCurrencyChanged -= RefreshSelected;
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
-        IAPService.OnStoreStateChanged -= RefreshRemoveAds;
+        IAPService.OnStoreStateChanged -= RefreshStoreUI;
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
@@ -36,7 +36,13 @@ public class ShopController : MonoBehaviour
     {
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
+        RefreshStoreUI();
+    }
+
+    void RefreshStoreUI()
+    {
         RefreshRemoveAds();
+        RefreshGemPacks();
     }
 
     public void Hide()
@@ -225,6 +231,43 @@ public class ShopController : MonoBehaviour
 
             RefreshRemoveAds();
         });
+    }
+
+    [Header("Gem Packs (IAP)")]
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // BuyGemPackSmall/Large on IAPService had no caller anywhere in the project - these
+    // are the wrappers a shop button can actually be wired to. Requires a human to add the
+    // buttons in the scene and hook OnBuyGemPackSmallPressed/OnBuyGemPackLargePressed.
+    public void RefreshGemPacks()
+    {
+        if (gemPackSmallPriceText != null)
+            gemPackSmallPriceText.text = IAPService.Instance != null
+                ? (IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall) ?? "Unavailable")
+                : "Unavailable";
+
+        if (gemPackLargePriceText != null)
+            gemPackLargePriceText.text = IAPService.Instance != null
+                ? (IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge) ?? "Unavailable")
+                : "Unavailable";
+    }
+
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
     }
 
     // An empty message means the player cancelled, which is not a failure worth reporting.
