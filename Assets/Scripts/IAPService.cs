@@ -71,6 +71,18 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         InitializePurchasing();
     }
 
+    void OnDestroy()
+    {
+        if (Instance != this) return;
+
+        Instance = null;
+        StoreReady = false;
+        // MainMenuController creates a fresh IAPService lazily whenever none exists. Without
+        // resetting the latch here, a destroyed DontDestroyOnLoad instance would leave it
+        // permanently set and every purchase would report "Store unavailable" until restart.
+        initializeRequested = false;
+    }
+
     void InitializePurchasing()
     {
         // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
