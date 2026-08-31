@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool matchRewardGranted;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -305,6 +306,12 @@ public class NetworkGameManager : NetworkBehaviour
     [ClientRpc]
     void EndGameClientRpc(int winnerCode, int red, int blue)
     {
+        // matchEnded only guards the server. Netcode does not promise a ClientRpc fires exactly
+        // once per client, and each client pays itself here - without a client-side guard a
+        // duplicate delivery would grant the coin reward twice.
+        if (matchRewardGranted) return;
+        matchRewardGranted = true;
+
         Team? winner = winnerCode < 0 ? (Team?)null : (winnerCode == 0 ? Team.Red : Team.Blue);
 
         Team? localTeam = null;
