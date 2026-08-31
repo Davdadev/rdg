@@ -129,6 +129,16 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Coins has a bare public setter with no clamping - every earn path used to write
+    // `Coins += amount` directly, which can overflow int on a bad/duplicated reward value.
+    // TrySpendCoins is the guarded path out; this is the guarded path in.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long result = (long)Coins + amount;
+        Coins = result > int.MaxValue ? int.MaxValue : (int)result;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;

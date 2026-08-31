@@ -158,7 +158,7 @@ public class ShopController : MonoBehaviour
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
