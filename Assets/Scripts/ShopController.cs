@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshStoreUI();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshStoreUI();
+        RefreshAdButton();
     }
 
     void RefreshStoreUI()
@@ -125,6 +127,20 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    float adButtonPollTimer;
+
+    // RewardedReady can flip true at any moment (the ad finishes loading in the background),
+    // and the button starts hidden after every tap - without a poll it would stay hidden for
+    // the rest of the scene's lifetime. Same approach as MenuFreeCoins.
+    void Update()
+    {
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
