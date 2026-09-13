@@ -71,6 +71,22 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         InitializePurchasing();
     }
 
+    void OnDestroy()
+    {
+        // Guard against the duplicate-instance branch above: that GameObject is
+        // destroyed before ever becoming Instance, so its teardown must not clear the
+        // real singleton's state.
+        if (Instance != this) return;
+
+        Instance = null;
+        StoreReady = false;
+        // MainMenuController re-creates this GameObject lazily if none exists. Without
+        // resetting the latch here, losing this instance (however that happens) would
+        // block InitializePurchasing() forever and the store would report "unavailable"
+        // for the rest of the session with no recovery short of an app restart.
+        initializeRequested = false;
+    }
+
     void InitializePurchasing()
     {
         // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
@@ -132,8 +148,12 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
+                // Do not consume a receipt for a product we don't understand - Complete
+                // would finish the transaction and grant nothing, taking the player's
+                // money with no recovery path. Pending leaves it outstanding so the store
+                // replays it (e.g. after an app update that recognises the id).
                 Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
