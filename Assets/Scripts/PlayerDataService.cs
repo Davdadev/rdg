@@ -129,6 +129,16 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Every earn path should route through here rather than the raw Coins setter, so a
+    // bad reward value (0, negative, or one large enough to overflow int) can never corrupt
+    // the balance the way a bare "+=" would.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long total = (long)Coins + amount;
+        Coins = (int)Math.Min(total, int.MaxValue);
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
