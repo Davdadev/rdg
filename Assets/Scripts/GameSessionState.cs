@@ -6,6 +6,10 @@ public static class GameSessionState
     public static int BlueScore;
     public static int LastCoinReward;
     public static bool PendingResults;
+    // Lives here, not on ResultsController, because LastCoinReward is also static: an
+    // instance-level flag gets wiped out whenever a new ResultsController runs ShowFromSession
+    // and re-arms the doubler against an already-doubled reward.
+    public static bool RewardDoubled;
 
     // winner is null for a draw (clock expired with scores level).
     public static void SetMatchResult(Team? winner, int redScore, int blueScore, int coinReward, Team? localTeam)
@@ -16,6 +20,7 @@ public static class GameSessionState
         LastCoinReward = coinReward;
         LocalTeam = localTeam;
         PendingResults = true;
+        RewardDoubled = false;
     }
 
     public static void Clear()
@@ -26,5 +31,6 @@ public static class GameSessionState
         LastCoinReward = 0;
         LocalTeam = null;
         PendingResults = false;
+        RewardDoubled = false;
     }
 }
