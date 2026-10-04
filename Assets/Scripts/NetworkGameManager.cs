@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool matchResultHandled; // client-side guard: EndGameClientRpc must never pay out twice for one match
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -305,6 +306,12 @@ public class NetworkGameManager : NetworkBehaviour
     [ClientRpc]
     void EndGameClientRpc(int winnerCode, int red, int blue)
     {
+        // matchEnded only guards the server from calling EndMatch twice - it says nothing about
+        // how many times a client processes this RPC. Without this, a client that handles the
+        // same call twice (e.g. a retransmit) pays itself the win/draw/loss reward twice.
+        if (matchResultHandled) return;
+        matchResultHandled = true;
+
         Team? winner = winnerCode < 0 ? (Team?)null : (winnerCode == 0 ? Team.Red : Team.Blue);
 
         Team? localTeam = null;
@@ -318,7 +325,7 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+        PlayerDataService.AddCoins(coinReward);
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 
