@@ -130,9 +130,9 @@ public static class PlayerDataService
     }
 
     // The only path that should ever increase Coins. Coins itself stays a public setter
-    // because UnlockSkin/spend paths need to write an already-computed balance, but every
-    // earn site (ads, match rewards, doublers) should go through here instead of "Coins +=
-    // x" directly, so a negative or zero reward can never silently drain the player.
+    // because TrySpendCoins still needs to write a directly-computed balance, but every
+    // earn site (ads, match rewards, doublers) should go through here instead of
+    // "Coins += x", so a negative or zero reward can never silently drain the player.
     public static void AddCoins(int amount)
     {
         if (amount <= 0) return;
