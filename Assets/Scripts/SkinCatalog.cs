@@ -21,12 +21,18 @@ public static class SkinCatalog
     public static SkinEntry Get(int id)
     {
         id = Mathf.Clamp(id, 0, SkinCount - 1);
+
+        // The top-tier skin is the gem sink. The old formula (id >= 3) priced Medic/Commander
+        // in gems, but both were pulled from the catalog above and Get() clamps to SkinCount-1,
+        // so that branch was unreachable and gems had nothing to spend on. Until replacement
+        // premium skins ship, Ranger is the one skin gems buy instead of coins.
+        bool gemSkin = id == SkinCount - 1 && id != 0;
         return new SkinEntry
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            CoinPrice = (id == 0 || gemSkin) ? 0 : 150 * id,
+            GemPrice = gemSkin ? 20 : 0,
             Free = id == 0
         };
     }
