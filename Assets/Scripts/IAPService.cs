@@ -124,19 +124,22 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         {
             case RemoveAds:
                 SetAdsRemoved(true);
-                break;
+                return PurchaseProcessingResult.Complete;
             case GemPackSmall:
                 GrantGems(50);
-                break;
+                return PurchaseProcessingResult.Complete;
             case GemPackLarge:
                 GrantGems(150);
-                break;
+                return PurchaseProcessingResult.Complete;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                // Complete would consume the receipt for nothing - real money, no goods, no
+                // recovery. Pending leaves the transaction un-finished so the store redelivers
+                // it (next launch / next receipt check), giving a future app update a chance
+                // to recognise the id and grant it instead of just losing the purchase.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id} - leaving transaction pending");
+                OnPurchaseFailedMessage?.Invoke("Purchase pending - please contact support");
+                return PurchaseProcessingResult.Pending;
         }
-
-        return PurchaseProcessingResult.Complete;
     }
 
     public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
