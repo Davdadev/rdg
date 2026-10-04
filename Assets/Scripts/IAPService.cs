@@ -44,8 +44,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static: the underlying store is a process-wide singleton (ConfigurationBuilder.Instance
+    // throws "Same key" on a second AddProduct pass), so these must outlive this wrapper
+    // GameObject. If it is ever destroyed and MainMenuController lazily recreates it, the new
+    // instance needs to find the already-initialised store rather than retry Initialize and
+    // get blocked forever by initializeRequested.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -68,7 +73,23 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
-        InitializePurchasing();
+
+        // The store already finished initialising on a previous (now-destroyed) instance -
+        // nothing to re-request, just pick up where that one left off.
+        if (controller != null)
+        {
+            StoreReady = true;
+            OnStoreStateChanged?.Invoke();
+        }
+        else
+        {
+            InitializePurchasing();
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
