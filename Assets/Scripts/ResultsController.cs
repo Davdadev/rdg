@@ -13,8 +13,6 @@ public class ResultsController : MonoBehaviour
     [SerializeField] GameObject doubleRewardButton;
     [SerializeField] Text doubleRewardLabel;
 
-    bool rewardDoubled;
-
     void Start()
     {
         if (panel != null) panel.SetActive(false);
@@ -38,13 +36,13 @@ public class ResultsController : MonoBehaviour
         if (scoreText != null)
             scoreText.text = $"Red {GameSessionState.RedScore}  —  Blue {GameSessionState.BlueScore}";
 
-        rewardDoubled = false;
         RefreshReward();
 
-        // Only offer the doubler when an ad is actually available, so the player is
-        // never shown a button that does nothing.
+        // Only offer the doubler when an ad is actually available and it hasn't already
+        // been claimed this match, so the player is never shown a button that does
+        // nothing or lets the same reward double twice.
         bool canOffer = AdService.Instance != null && AdService.Instance.RewardedReady
-                        && GameSessionState.LastCoinReward > 0;
+                        && GameSessionState.LastCoinReward > 0 && !GameSessionState.RewardDoubled;
         if (doubleRewardButton != null) doubleRewardButton.SetActive(canOffer);
         if (doubleRewardLabel != null) doubleRewardLabel.text = "WATCH AD\nDOUBLE COINS";
 
@@ -59,7 +57,7 @@ public class ResultsController : MonoBehaviour
 
     public void OnDoubleRewardPressed()
     {
-        if (rewardDoubled || AdService.Instance == null) return;
+        if (GameSessionState.RewardDoubled || AdService.Instance == null) return;
 
         if (doubleRewardButton != null) doubleRewardButton.SetActive(false);
 
@@ -67,15 +65,18 @@ public class ResultsController : MonoBehaviour
         {
             if (!watched)
             {
-                // Player bailed or no fill - say so plainly and move on, no penalty.
+                // Player bailed or no fill - say so plainly and move on, no penalty. The
+                // button still has to come back though, or this was the only chance to
+                // double and it is gone for the rest of the match.
                 GameFeedUI.Instance.Toast("Ad unavailable - reward unchanged", new Color(1f, 0.7f, 0.4f));
+                if (doubleRewardButton != null) doubleRewardButton.SetActive(true);
                 return;
             }
 
             int bonus = GameSessionState.LastCoinReward;
-            PlayerDataService.Coins += bonus;
+            PlayerDataService.AddCoins(bonus);
             GameSessionState.LastCoinReward += bonus;
-            rewardDoubled = true;
+            GameSessionState.RewardDoubled = true;
 
             RefreshReward();
             GameFeedUI.Instance.Banner("COINS DOUBLED!", new Color(1f, 0.88f, 0.3f), 1.2f);
