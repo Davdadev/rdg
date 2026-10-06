@@ -129,6 +129,15 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Coins' setter has no clamping or sign guard, and every earn path used to write to it
+    // directly. Routing grants through here keeps a negative or zero "reward" from ever
+    // being applied, the mirror of TrySpendCoins guarding the spend side.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        Coins += amount;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;

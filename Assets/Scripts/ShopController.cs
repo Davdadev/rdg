@@ -20,8 +20,10 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
         IAPService.OnStoreStateChanged += RefreshRemoveAds;
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
+        SubscribeGemPackEvents();
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
     }
 
     void OnDisable()
@@ -30,13 +32,16 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
         IAPService.OnStoreStateChanged -= RefreshRemoveAds;
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
+        if (IAPService.Instance != null) IAPService.Instance.OnGemsPurchased -= OnGemsPurchased;
     }
 
     public void Show()
     {
         if (panel != null) panel.SetActive(true);
+        SubscribeGemPackEvents();
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
     }
 
     public void Hide()
@@ -119,6 +124,24 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    float adButtonPollTimer;
+    bool watchAdInProgress;
+
+    // Mirrors MenuFreeCoins' poll: RewardedReady can flip true again at any time (a new ad
+    // finishes loading), and nothing else tells this panel to look, so without polling the
+    // button stays hidden for the rest of the panel's life after one tap while no ad was ready.
+    void Update()
+    {
+        if (watchAdInProgress) return;
+
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -130,13 +153,16 @@ public class ShopController : MonoBehaviour
             return;
         }
 
+        watchAdInProgress = true;
         if (watchAdButton != null) watchAdButton.SetActive(false);
 
         AdService.Instance.ShowRewarded(watched =>
         {
+            watchAdInProgress = false;
+
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -227,12 +253,82 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but "Contacting store..." is still sitting on screen from before the purchase, so it
+    // has to be cleared either way rather than only overwritten on a real failure message.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
+    }
+
+    [Header("Gem Packs (IAP)")]
+    [SerializeField] GameObject gemPackSmallButton;
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] GameObject gemPackLargeButton;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // Gems otherwise have no way in: BuyGemPackSmall/Large on IAPService had no caller at
+    // all, so the gem balance could only ever read 0. This is the public surface a scene
+    // button can be wired to; Ranger (SkinCatalog id 2) is the matching gem sink.
+    public void RefreshGemPacks()
+    {
+        string smallPrice = IAPService.Instance != null
+            ? IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall)
+            : null;
+        string largePrice = IAPService.Instance != null
+            ? IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge)
+            : null;
+
+        if (gemPackSmallPriceText != null) gemPackSmallPriceText.text = smallPrice ?? "Unavailable";
+        if (gemPackLargePriceText != null) gemPackLargePriceText.text = largePrice ?? "Unavailable";
+
+        var smallButton = gemPackSmallButton != null ? gemPackSmallButton.GetComponent<Button>() : null;
+        if (smallButton != null) smallButton.interactable = smallPrice != null;
+
+        var largeButton = gemPackLargeButton != null ? gemPackLargeButton.GetComponent<Button>() : null;
+        if (largeButton != null) largeButton.interactable = largePrice != null;
+    }
+
+    public void OnBuyGemPackSmallPressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackSmall();
+    }
+
+    public void OnBuyGemPackLargePressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackLarge();
+    }
+
+    void SubscribeGemPackEvents()
+    {
+        if (IAPService.Instance == null) return;
+        // Idempotent: -= before += so repeated calls (OnEnable and Show can both run) never
+        // double-subscribe, without needing a separate "already subscribed" flag.
+        IAPService.Instance.OnGemsPurchased -= OnGemsPurchased;
+        IAPService.Instance.OnGemsPurchased += OnGemsPurchased;
+    }
+
+    void OnGemsPurchased(int amount)
+    {
+        if (statusText != null) statusText.text = $"+{amount} gems!";
+        GameFeedUI.Instance.Toast($"+{amount} gems", new Color(0.6f, 0.85f, 1f));
+        RefreshGemPacks();
     }
 
     public void OnSelectKnight() => SelectSkin(0);

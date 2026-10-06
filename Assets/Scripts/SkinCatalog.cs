@@ -25,8 +25,11 @@ public static class SkinCatalog
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            // Ranger is the gem sink - the old `id >= 3` gem formula could never fire once
+            // Medic/Commander were pulled from the catalog, so gems had nothing to buy.
+            // Knight is free, Ninja is the coin skin, Ranger is the gem skin.
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 40 : 0,
             Free = id == 0
         };
     }

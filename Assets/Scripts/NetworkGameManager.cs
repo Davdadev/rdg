@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool rewardGranted;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -318,7 +319,15 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+
+        // matchEnded only guards the server from running EndMatch twice. It says nothing
+        // about this client, which can still be handed the same ClientRpc call more than
+        // once (e.g. a resend), and would otherwise pay itself again each time.
+        if (!rewardGranted)
+        {
+            rewardGranted = true;
+            PlayerDataService.AddCoins(coinReward);
+        }
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 
