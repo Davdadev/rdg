@@ -44,8 +44,15 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, not instance fields: MainMenuController creates this component lazily via
+    // `new GameObject(...)`, and if that DontDestroyOnLoad object is ever destroyed,
+    // initializeRequested stops a fresh instance from calling UnityPurchasing.Initialize
+    // again (ConfigurationBuilder.Instance() is a process-wide singleton and throws "Same
+    // key" on a second AddProduct pass). Keeping the controller reference static means the
+    // store this process already initialised keeps working for any later instance instead
+    // of the service going dark for the rest of the session.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +76,11 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
