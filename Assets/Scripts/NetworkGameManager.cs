@@ -50,6 +50,9 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    // matchEnded only guards the server; this guards each client against processing
+    // EndGameClientRpc more than once (e.g. a resend) and paying itself twice.
+    bool coinsAwarded;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -318,7 +321,12 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+
+        if (!coinsAwarded)
+        {
+            coinsAwarded = true;
+            PlayerDataService.AddCoins(coinReward);
+        }
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 
