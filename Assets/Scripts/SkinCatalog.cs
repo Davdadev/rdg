@@ -25,8 +25,11 @@ public static class SkinCatalog
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            // Knight is free, Ninja is the coin-tier skin, Ranger is the premium
+            // skin and is gem-only - that gives the gem currency an actual sink
+            // instead of a price formula no in-range id could ever reach.
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 20 : 0,
             Free = id == 0
         };
     }
