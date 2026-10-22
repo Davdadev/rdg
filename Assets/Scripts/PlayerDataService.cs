@@ -129,6 +129,16 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Guarded counterpart to TrySpendCoins: every earn path should grant through here
+    // rather than writing the Coins setter directly, so a bad amount can't go negative
+    // or wrap past int.MaxValue.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long sum = (long)Coins + amount;
+        Coins = sum > int.MaxValue ? int.MaxValue : (int)sum;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
