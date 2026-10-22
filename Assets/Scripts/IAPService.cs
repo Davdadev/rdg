@@ -44,8 +44,14 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     static bool initializeRequested;
 
-    IStoreController controller;
-    IAppleExtensions appleExtensions;
+    // Static, not instance fields: the IAPService GameObject is DontDestroyOnLoad but
+    // nothing guarantees it survives (another object could Destroy it, a scene load
+    // could orphan it). If it ever is destroyed and MainMenuController lazily creates a
+    // replacement, that replacement's Awake is skipped by the initializeRequested latch
+    // below, so it must still be able to reach the controller the first instance already
+    // obtained - an instance field would strand it at null forever.
+    static IStoreController controller;
+    static IAppleExtensions appleExtensions;
 
     // The entitlement has to be known before the first interstitial can fire, which can happen
     // before this component exists. Seed the cached value at load; the receipt check in
@@ -69,6 +75,11 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         Instance = this;
         DontDestroyOnLoad(gameObject);
         InitializePurchasing();
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     void InitializePurchasing()
@@ -132,8 +143,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
-                break;
+                // Never return Complete for an id we don't recognise - that finalises the
+                // sale and consumes the receipt with nothing granted, i.e. takes the
+                // player's money for good. Pending leaves the order unresolved so IAP
+                // keeps retrying ProcessPurchase for it (e.g. once a catalog fix ships)
+                // instead of silently losing it.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id} - leaving order pending.");
+                return PurchaseProcessingResult.Pending;
         }
 
         return PurchaseProcessingResult.Complete;
