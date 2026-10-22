@@ -20,8 +20,10 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
         IAPService.OnStoreStateChanged += RefreshRemoveAds;
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
+        if (IAPService.Instance != null) IAPService.Instance.OnGemsPurchased += ShowGemsPurchased;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -30,6 +32,7 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
         IAPService.OnStoreStateChanged -= RefreshRemoveAds;
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
+        if (IAPService.Instance != null) IAPService.Instance.OnGemsPurchased -= ShowGemsPurchased;
     }
 
     public void Show()
@@ -119,6 +122,21 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    float adButtonPollTimer;
+
+    // Same polling approach as MenuFreeCoins: RewardedReady can flip true again at any
+    // time (the ad finishes loading in the background), and nothing else ever calls
+    // RefreshAdButton, so without this the button stays hidden for the rest of the scene
+    // after one tap while no ad was ready.
+    void Update()
+    {
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -136,7 +154,7 @@ public class ShopController : MonoBehaviour
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -206,6 +224,38 @@ public class ShopController : MonoBehaviour
         IAPService.Instance.BuyRemoveAds();
     }
 
+    // Gem packs. No scene button calls these yet - they exist so a human can wire
+    // one up in the editor; see OnBuyPressed for where the gems they buy get spent.
+    public void OnBuyGemPackSmallPressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackSmall();
+    }
+
+    public void OnBuyGemPackLargePressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackLarge();
+    }
+
+    void ShowGemsPurchased(int amount)
+    {
+        if (statusText != null) statusText.text = $"+{amount} gems!";
+        GameFeedUI.Instance.Toast($"+{amount} gems", new Color(0.55f, 0.85f, 1f));
+    }
+
     public void OnRestorePurchasesPressed()
     {
         if (IAPService.Instance == null)
@@ -227,11 +277,13 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status still has to clear the "Contacting store..." set before the purchase,
+    // so write it (even empty) rather than only writing on a non-empty message.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
     }
 
