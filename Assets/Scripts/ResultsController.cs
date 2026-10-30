@@ -13,8 +13,6 @@ public class ResultsController : MonoBehaviour
     [SerializeField] GameObject doubleRewardButton;
     [SerializeField] Text doubleRewardLabel;
 
-    bool rewardDoubled;
-
     void Start()
     {
         if (panel != null) panel.SetActive(false);
@@ -38,12 +36,14 @@ public class ResultsController : MonoBehaviour
         if (scoreText != null)
             scoreText.text = $"Red {GameSessionState.RedScore}  —  Blue {GameSessionState.BlueScore}";
 
-        rewardDoubled = false;
         RefreshReward();
 
         // Only offer the doubler when an ad is actually available, so the player is
-        // never shown a button that does nothing.
-        bool canOffer = AdService.Instance != null && AdService.Instance.RewardedReady
+        // never shown a button that does nothing. GameSessionState.RewardDoubled (not an
+        // instance flag) also guards this, since ShowFromSession can be called more than
+        // once for the same match result before GameSessionState.Clear() runs.
+        bool canOffer = !GameSessionState.RewardDoubled
+                        && AdService.Instance != null && AdService.Instance.RewardedReady
                         && GameSessionState.LastCoinReward > 0;
         if (doubleRewardButton != null) doubleRewardButton.SetActive(canOffer);
         if (doubleRewardLabel != null) doubleRewardLabel.text = "WATCH AD\nDOUBLE COINS";
@@ -59,7 +59,7 @@ public class ResultsController : MonoBehaviour
 
     public void OnDoubleRewardPressed()
     {
-        if (rewardDoubled || AdService.Instance == null) return;
+        if (GameSessionState.RewardDoubled || AdService.Instance == null) return;
 
         if (doubleRewardButton != null) doubleRewardButton.SetActive(false);
 
@@ -67,15 +67,17 @@ public class ResultsController : MonoBehaviour
         {
             if (!watched)
             {
-                // Player bailed or no fill - say so plainly and move on, no penalty.
+                // Player bailed or no fill - say so plainly and move on, no penalty. Restore
+                // the button so they can retry instead of the offer being silently forfeited.
                 GameFeedUI.Instance.Toast("Ad unavailable - reward unchanged", new Color(1f, 0.7f, 0.4f));
+                if (doubleRewardButton != null) doubleRewardButton.SetActive(true);
                 return;
             }
 
             int bonus = GameSessionState.LastCoinReward;
-            PlayerDataService.Coins += bonus;
+            PlayerDataService.AddCoins(bonus);
             GameSessionState.LastCoinReward += bonus;
-            rewardDoubled = true;
+            GameSessionState.RewardDoubled = true;
 
             RefreshReward();
             GameFeedUI.Instance.Banner("COINS DOUBLED!", new Color(1f, 0.88f, 0.3f), 1.2f);

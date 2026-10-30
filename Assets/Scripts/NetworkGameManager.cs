@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool clientRewardGranted;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -305,6 +306,13 @@ public class NetworkGameManager : NetworkBehaviour
     [ClientRpc]
     void EndGameClientRpc(int winnerCode, int red, int blue)
     {
+        // matchEnded (above) only stops the server re-sending this; it does nothing to
+        // stop a client processing the same delivery twice, which would pay the local
+        // player's coin reward twice. Each client pays itself here, so the replay guard
+        // has to live on the client.
+        if (clientRewardGranted) return;
+        clientRewardGranted = true;
+
         Team? winner = winnerCode < 0 ? (Team?)null : (winnerCode == 0 ? Team.Red : Team.Blue);
 
         Team? localTeam = null;
@@ -318,7 +326,7 @@ public class NetworkGameManager : NetworkBehaviour
         bool isDraw = !winner.HasValue;
         bool localWon = !isDraw && localTeam.HasValue && localTeam.Value == winner.Value;
         int coinReward = isDraw ? 60 : (localWon ? 100 : 40);
-        PlayerDataService.Coins += coinReward;
+        PlayerDataService.AddCoins(coinReward);
 
         GameSessionState.SetMatchResult(winner, red, blue, coinReward, localTeam);
 

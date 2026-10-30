@@ -129,6 +129,16 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Every earn path (ad rewards, match results, the double-reward bonus) should route
+    // through here rather than writing Coins directly, so a stray negative or absurd
+    // amount can't silently push the balance below zero or overflow it.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long sum = (long)Coins + amount;
+        Coins = sum > int.MaxValue ? int.MaxValue : (int)sum;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;

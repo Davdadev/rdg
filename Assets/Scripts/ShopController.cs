@@ -13,6 +13,12 @@ public class ShopController : MonoBehaviour
 
     int selectedSkin;
 
+    // The watch-ad button only gets pushed back onscreen by RefreshAdButton(), and ad
+    // readiness changes on its own between taps - poll it the same way MenuFreeCoins does,
+    // rather than leaving it hidden until something else happens to call RefreshAdButton().
+    [SerializeField] float adButtonPollInterval = 1f;
+    float adButtonPollTimer;
+
     void OnEnable()
     {
         PlayerDataService.EnsureDefaults();
@@ -22,6 +28,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -32,11 +39,23 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
+    void Update()
+    {
+        if (panel == null || !panel.activeInHierarchy) return;
+
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+
+        RefreshAdButton();
+    }
+
     public void Show()
     {
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -116,6 +135,40 @@ public class ShopController : MonoBehaviour
 
     public void OnClosePressed() => Hide();
 
+    [Header("Gem packs (IAP)")]
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // Nothing in the scene calls these yet - a human needs to wire two buttons to them
+    // in the Unity editor. Without this, gems can be earned by the shop's gem-priced
+    // skin but never bought, which is exactly the dead-end this method exists to close.
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else IAPService.Instance.BuyGemPackLarge();
+    }
+
+    void RefreshGemPackPrices()
+    {
+        if (IAPService.Instance == null) return;
+
+        if (gemPackSmallPriceText != null)
+            gemPackSmallPriceText.text = IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall) ?? "Unavailable";
+        if (gemPackLargePriceText != null)
+            gemPackLargePriceText.text = IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge) ?? "Unavailable";
+    }
+
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
@@ -136,7 +189,7 @@ public class ShopController : MonoBehaviour
         {
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -189,6 +242,8 @@ public class ShopController : MonoBehaviour
         // item reads as a bug, a greyed-out one reads as a receipt.
         var button = removeAdsButton != null ? removeAdsButton.GetComponent<Button>() : null;
         if (button != null) button.interactable = !owned && price != null;
+
+        RefreshGemPackPrices();
     }
 
     public void OnRemoveAdsPressed()
@@ -227,11 +282,13 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label still has to be cleared, or a cancel leaves "Contacting store..."
+    // on screen for the rest of the session.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message ?? "";
         RefreshRemoveAds();
     }
 
