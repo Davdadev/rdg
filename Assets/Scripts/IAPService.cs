@@ -42,7 +42,12 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
 
     public event Action<int> OnGemsPurchased;
 
-    static bool initializeRequested;
+    // Guards only the one-time ConfigurationBuilder.AddProduct pass (see InitializePurchasing).
+    // It must never gate UnityPurchasing.Initialize itself, and must never be reset while the
+    // process is alive - ConfigurationBuilder.Instance() returns the same singleton builder
+    // for the rest of the process, and a second AddProduct call for a product id already on
+    // it throws "Same key".
+    static bool productsConfigured;
 
     IStoreController controller;
     IAppleExtensions appleExtensions;
@@ -55,7 +60,7 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
     {
         AdsRemoved = PlayerPrefs.GetInt(AdsRemovedKey, 0) == 1;
         StoreReady = false;
-        initializeRequested = false;
+        productsConfigured = false;
     }
 
     void Awake()
@@ -74,32 +79,34 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
     void OnDestroy()
     {
         // Only the real singleton's teardown should reset shared state - the Destroy()
-        // above for a duplicate must not clear the latch out from under the survivor.
+        // above for a duplicate must not clear state out from under the survivor.
         if (Instance != this) return;
 
         Instance = null;
         controller = null;
         StoreReady = false;
 
-        // MainMenuController recreates this GameObject lazily if it's ever missing. Without
-        // resetting the latch here, that recreation would find initializeRequested already
-        // true, skip UnityPurchasing.Initialize entirely, and leave controller null (and
-        // every purchase reporting "Store unavailable") for the rest of the process.
-        initializeRequested = false;
+        // MainMenuController recreates this GameObject lazily if it's ever missing. That
+        // recreation must still reach UnityPurchasing.Initialize - productsConfigured is
+        // deliberately left alone here (see its declaration) so this doesn't re-run
+        // AddProduct on the same builder singleton and throw "Same key".
     }
 
     void InitializePurchasing()
     {
-        // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
-        // "Same key". One shot per process.
-        if (initializeRequested) return;
-        initializeRequested = true;
-
         var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-        builder.AddProduct(GemPackSmall, ProductType.Consumable);
-        builder.AddProduct(GemPackLarge, ProductType.Consumable);
-        builder.AddProduct(RemoveAds, ProductType.NonConsumable);
 
+        if (!productsConfigured)
+        {
+            productsConfigured = true;
+            builder.AddProduct(GemPackSmall, ProductType.Consumable);
+            builder.AddProduct(GemPackLarge, ProductType.Consumable);
+            builder.AddProduct(RemoveAds, ProductType.NonConsumable);
+        }
+
+        // Unlike AddProduct, Initialize must run every time this method does - otherwise a
+        // freshly recreated instance (see OnDestroy) would never re-register as the store's
+        // listener, and controller would stay null for the rest of the process.
         UnityPurchasing.Initialize(this, builder);
     }
 
