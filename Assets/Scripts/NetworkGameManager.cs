@@ -50,6 +50,7 @@ public class NetworkGameManager : NetworkBehaviour
     int redCount;
     int blueCount;
     bool matchEnded;
+    bool rewardGranted;
     readonly Queue<int> pendingSkinQueue = new();
     readonly Queue<string> pendingNameQueue = new();
 
@@ -305,6 +306,13 @@ public class NetworkGameManager : NetworkBehaviour
     [ClientRpc]
     void EndGameClientRpc(int winnerCode, int red, int blue)
     {
+        // matchEnded only guards the server from calling EndMatch twice - it says nothing
+        // about how many times a client processes this RPC. Each client pays itself here,
+        // so without its own guard a client that handled the RPC more than once would grant
+        // the match reward more than once.
+        if (rewardGranted) return;
+        rewardGranted = true;
+
         Team? winner = winnerCode < 0 ? (Team?)null : (winnerCode == 0 ? Team.Red : Team.Blue);
 
         Team? localTeam = null;
