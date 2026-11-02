@@ -19,9 +19,11 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnCurrencyChanged += RefreshSelected;
         PlayerDataService.OnLoadoutChanged += RefreshSelected;
         IAPService.OnStoreStateChanged += RefreshRemoveAds;
+        IAPService.OnStoreStateChanged += RefreshGemPacks;
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
     }
 
     void OnDisable()
@@ -29,6 +31,7 @@ public class ShopController : MonoBehaviour
         PlayerDataService.OnCurrencyChanged -= RefreshSelected;
         PlayerDataService.OnLoadoutChanged -= RefreshSelected;
         IAPService.OnStoreStateChanged -= RefreshRemoveAds;
+        IAPService.OnStoreStateChanged -= RefreshGemPacks;
         IAPService.OnPurchaseFailedMessage -= ShowPurchaseFailure;
     }
 
@@ -37,6 +40,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshGemPacks();
     }
 
     public void Hide()
@@ -204,6 +208,45 @@ public class ShopController : MonoBehaviour
         removeAdsPending = true;
         if (statusText != null) statusText.text = "Contacting store...";
         IAPService.Instance.BuyRemoveAds();
+    }
+
+    [Header("Gem Packs (IAP)")]
+    [SerializeField] Text gemPackSmallPriceText;
+    [SerializeField] Text gemPackLargePriceText;
+
+    // Gem packs are consumables bought straight from IAPService, with no entitlement to
+    // track - just a localized price to show and a status line while the store responds.
+    public void RefreshGemPacks()
+    {
+        string small = IAPService.Instance != null ? IAPService.Instance.GetLocalizedPrice(IAPService.GemPackSmall) : null;
+        string large = IAPService.Instance != null ? IAPService.Instance.GetLocalizedPrice(IAPService.GemPackLarge) : null;
+
+        if (gemPackSmallPriceText != null) gemPackSmallPriceText.text = small ?? "Unavailable";
+        if (gemPackLargePriceText != null) gemPackLargePriceText.text = large ?? "Unavailable";
+    }
+
+    public void OnBuyGemPackSmallPressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackSmall();
+    }
+
+    public void OnBuyGemPackLargePressed()
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+        IAPService.Instance.BuyGemPackLarge();
     }
 
     public void OnRestorePurchasesPressed()

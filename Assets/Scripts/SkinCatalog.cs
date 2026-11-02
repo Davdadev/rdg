@@ -25,8 +25,10 @@ public static class SkinCatalog
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            // Ranger is the one gem-priced skin. Gems need a real sink inside the clamped
+            // 0..SkinCount-1 range, or the gem packs sold in IAPService buy nothing at all.
+            CoinPrice = id == 1 ? 150 : 0,
+            GemPrice = id == 2 ? 20 : 0,
             Free = id == 0
         };
     }
