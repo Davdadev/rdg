@@ -24,6 +24,8 @@ public class ShopController : MonoBehaviour
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
         RefreshGemPacks();
+        RefreshAdButton();
+        adPollTimer = adPollInterval;
     }
 
     void OnDisable()
@@ -41,6 +43,8 @@ public class ShopController : MonoBehaviour
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
         RefreshGemPacks();
+        RefreshAdButton();
+        adPollTimer = adPollInterval;
     }
 
     public void Hide()
@@ -123,6 +127,21 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adPollInterval = 1f;
+
+    float adPollTimer;
+
+    // Same ~1s poll as MenuFreeCoins: RewardedReady flips asynchronously whenever the ad
+    // finishes (re)loading, and nothing else tells this panel when that happens. Without
+    // polling, the button hidden in OnWatchAdForCoinsPressed would stay hidden until the
+    // ad happened to become ready while some other code path called RefreshAdButton.
+    void Update()
+    {
+        adPollTimer -= Time.unscaledDeltaTime;
+        if (adPollTimer > 0f) return;
+        adPollTimer = adPollInterval;
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
