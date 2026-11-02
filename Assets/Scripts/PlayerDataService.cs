@@ -129,6 +129,17 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Coins has a public setter with no clamping and no negative guard, which is fine for
+    // TrySpendCoins (it checks the balance itself) but wrong for every earn path, which
+    // would otherwise grant a negative or garbage amount verbatim. Route grants through
+    // here instead.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long total = (long)Coins + amount;
+        Coins = (int)System.Math.Min(total, int.MaxValue);
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
