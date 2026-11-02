@@ -289,11 +289,13 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status line must still clear whatever it was showing (e.g. "Contacting
+    // store..."), or a cancel leaves that placeholder stuck on screen forever.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message;
         RefreshRemoveAds();
     }
 
