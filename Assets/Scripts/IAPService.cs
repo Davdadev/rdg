@@ -132,7 +132,13 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
                 GrantGems(150);
                 break;
             default:
-                Debug.LogWarning($"[IAPService] Unrecognised product purchased: {id}");
+                // The catalog only ever configures the three products above, so reaching
+                // here means a store-side catalog mismatch, not a normal failure path.
+                // Still Complete (Pending would retry this unfulfillable receipt forever
+                // on every future launch), but say so loudly and tell the player, rather
+                // than silently taking their money and granting nothing.
+                Debug.LogError($"[IAPService] Unrecognised product purchased: {id}. Completing the receipt, but nothing was granted.");
+                OnPurchaseFailedMessage?.Invoke("Purchase could not be completed - contact support");
                 break;
         }
 
