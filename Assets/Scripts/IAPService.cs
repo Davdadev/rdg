@@ -71,6 +71,25 @@ public class IAPService : MonoBehaviour, IDetailedStoreListener
         InitializePurchasing();
     }
 
+    void OnDestroy()
+    {
+        // Only the live singleton's teardown should reset shared state - the early-out
+        // Destroy(gameObject) above for a duplicate also triggers OnDestroy on that
+        // duplicate, and it must not stomp on the instance actually in use.
+        if (Instance != this) return;
+
+        Instance = null;
+        StoreReady = false;
+        controller = null;
+
+        // Without this, a destroyed DontDestroyOnLoad object (which should never happen,
+        // but nothing currently prevents it) would permanently block re-initialisation:
+        // initializeRequested only ever resets at process start, so every purchase for
+        // the rest of the session would report "Store unavailable" with no recovery
+        // short of an app restart.
+        initializeRequested = false;
+    }
+
     void InitializePurchasing()
     {
         // ConfigurationBuilder is a singleton in IAP 5.x, so a second AddProduct pass throws
