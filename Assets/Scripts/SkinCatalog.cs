@@ -18,15 +18,22 @@ public static class SkinCatalog
         public bool Free;
     }
 
+    // The top skin is the hard-currency sink: it is priced in gems instead of coins,
+    // which is what gives the gem packs in IAPService something to buy. Without this,
+    // gems have no sink and the gem packs have no reason to exist (see IAPService).
+    const int PremiumSkinId = SkinCount - 1;
+    const int PremiumGemPrice = 50;
+
     public static SkinEntry Get(int id)
     {
         id = Mathf.Clamp(id, 0, SkinCount - 1);
+        bool premium = id == PremiumSkinId;
         return new SkinEntry
         {
             Id = id,
             Name = Names[id],
-            CoinPrice = id == 0 ? 0 : 150 * id,
-            GemPrice = id >= 3 ? 10 * (id - 2) : 0,
+            CoinPrice = (id == 0 || premium) ? 0 : 150 * id,
+            GemPrice = premium ? PremiumGemPrice : 0,
             Free = id == 0
         };
     }

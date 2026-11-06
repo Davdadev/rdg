@@ -206,6 +206,26 @@ public class ShopController : MonoBehaviour
         IAPService.Instance.BuyRemoveAds();
     }
 
+    // Gem packs: same "fire request, reconcile on OnStoreStateChanged / OnPurchaseFailedMessage"
+    // shape as OnRemoveAdsPressed. Gems themselves land via IAPService.GrantGems, which raises
+    // OnCurrencyChanged, so RefreshSelected picks up the new balance without any extra wiring here.
+    public void OnBuyGemPackSmallPressed() => BuyGemPack(IAPService.GemPackSmall);
+    public void OnBuyGemPackLargePressed() => BuyGemPack(IAPService.GemPackLarge);
+
+    void BuyGemPack(string productId)
+    {
+        if (IAPService.Instance == null)
+        {
+            if (statusText != null) statusText.text = "Store unavailable";
+            return;
+        }
+
+        if (statusText != null) statusText.text = "Contacting store...";
+
+        if (productId == IAPService.GemPackSmall) IAPService.Instance.BuyGemPackSmall();
+        else if (productId == IAPService.GemPackLarge) IAPService.Instance.BuyGemPackLarge();
+    }
+
     public void OnRestorePurchasesPressed()
     {
         if (IAPService.Instance == null)
