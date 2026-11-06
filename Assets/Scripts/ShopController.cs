@@ -22,6 +22,7 @@ public class ShopController : MonoBehaviour
         IAPService.OnPurchaseFailedMessage += ShowPurchaseFailure;
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     void OnDisable()
@@ -37,6 +38,7 @@ public class ShopController : MonoBehaviour
         if (panel != null) panel.SetActive(true);
         SelectSkin(PlayerDataService.EquippedSkinIndex);
         RefreshRemoveAds();
+        RefreshAdButton();
     }
 
     public void Hide()
@@ -119,6 +121,22 @@ public class ShopController : MonoBehaviour
     [Header("Rewarded ad")]
     [SerializeField] GameObject watchAdButton;
     [SerializeField] int coinsPerAd = 75;
+    [SerializeField] float adButtonPollInterval = 1f;
+
+    bool watchAdBusy;
+    float adButtonPollTimer;
+
+    // RewardedReady flips on its own time (async ad load), so the button needs to keep
+    // checking rather than only refreshing right after a tap - same approach as
+    // MenuFreeCoins. Skipped while watchAdBusy so a mid-ad poll can't re-show the button.
+    void Update()
+    {
+        if (watchAdBusy) return;
+        adButtonPollTimer -= Time.unscaledDeltaTime;
+        if (adButtonPollTimer > 0f) return;
+        adButtonPollTimer = adButtonPollInterval;
+        RefreshAdButton();
+    }
 
     // Free-coins-for-an-ad. Deliberately opt-in: nothing here is gated behind an ad,
     // it is only an extra way to earn.
@@ -130,13 +148,16 @@ public class ShopController : MonoBehaviour
             return;
         }
 
+        watchAdBusy = true;
         if (watchAdButton != null) watchAdButton.SetActive(false);
 
         AdService.Instance.ShowRewarded(watched =>
         {
+            watchAdBusy = false;
+
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 if (statusText != null) statusText.text = $"+{coinsPerAd} coins!";
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", new Color(1f, 0.85f, 0.3f));
             }
@@ -247,11 +268,13 @@ public class ShopController : MonoBehaviour
         });
     }
 
-    // An empty message means the player cancelled, which is not a failure worth reporting.
+    // An empty message means the player cancelled, which is not a failure worth reporting -
+    // but the status label (e.g. "Contacting store...") still needs clearing either way, so
+    // this always writes, just with an empty string for the cancel case.
     void ShowPurchaseFailure(string message)
     {
         removeAdsPending = false;
-        if (statusText != null && !string.IsNullOrEmpty(message)) statusText.text = message;
+        if (statusText != null) statusText.text = message ?? "";
         RefreshRemoveAds();
     }
 

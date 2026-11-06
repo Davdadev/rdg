@@ -58,7 +58,7 @@ public class MenuFreeCoins : MonoBehaviour
             busy = false;
             if (watched)
             {
-                PlayerDataService.Coins += coinsPerAd;
+                PlayerDataService.AddCoins(coinsPerAd);
                 GameFeedUI.Instance.Toast($"+{coinsPerAd} coins", GameUI.Coin);
             }
             else

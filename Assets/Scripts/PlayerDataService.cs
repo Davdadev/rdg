@@ -129,6 +129,17 @@ public static class PlayerDataService
         return ProfanityFilter.Filter(trimmed);
     }
 
+    // Coins has an unclamped public setter and multiple earn paths (match rewards, rewarded
+    // ads, the coin doubler) wrote straight into it with +=. This is the one guarded grant
+    // path: it rejects non-positive amounts and clamps against overflow, so every earn site
+    // can route through it instead of hand-rolling the same check.
+    public static void AddCoins(int amount)
+    {
+        if (amount <= 0) return;
+        long sum = (long)Coins + amount;
+        Coins = sum > int.MaxValue ? int.MaxValue : (int)sum;
+    }
+
     public static bool TrySpendCoins(int amount)
     {
         if (amount <= 0 || Coins < amount) return false;
